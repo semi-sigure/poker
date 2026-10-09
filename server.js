@@ -11,23 +11,24 @@ const cat=fl&&st?8:a==4?7:a==3&&b==2?6:fl?5:st?4:a==3?3:a==2&&b==2?2:a==2?1:0,t=
 function best(c){let m=0;for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++){const s=s5(c.filter((_,k)=>k!=i&&k!=j));if(s>m)m=s}return m}
 
 
-function makeRoom(){let S={phase:'lobby',players:[]},timer,hostId='',joins={};const conns={};
+function makeRoom(){let S={phase:'lobby',players:[]},timer,hostId='',joins={};const conns={};const TURN=25000,REL=LVMS*3;let tt;
 const nx=(i,f)=>{const n=S.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(f(S.players[j]))return j}return -1};
 const view=id=>{const o=JSON.parse(JSON.stringify(S));delete o.deck;o.players.forEach(p=>{p.sc=0;if(p.id!=id&&!(o.reveal&&!p.folded))p.hole=(p.hole||[]).map(()=>-1)});return o};
-const push=()=>Object.entries(conns).forEach(([id,w])=>{if(w.readyState==1){const o=view(id);o.host=hostId;w.send(JSON.stringify({k:'st',s:o}))}});
+const push=()=>Object.entries(conns).forEach(([id,w])=>{if(w.readyState==1){const o=view(id);o.host=hostId;o.now=Date.now();w.send(JSON.stringify({k:'st',s:o}))}});
 function handleAway(id,v){if(S.phase=='lobby')return;const p=S.players.find(q=>q.id==id);if(!p)return;p.away=v?1:0;if(v&&S.phase=='play'&&S.players[S.turn]===p)act(S.turn,S.cur>p.bet?'f':'c');else push()}
-function handleAct(id,t,a){if(S.phase!='play')return;const i=S.turn;if(S.players[i]&&S.players[i].id==id)act(i,t,a)}
-const sched=()=>{clearTimeout(timer);timer=setTimeout(newHand,7000)};
+function handleAct(id,t,a){if(S.phase!='play')return;const i=S.turn;if(S.players[i]&&S.players[i].id==id){S.players[i].to=0;act(i,t,a)}}
+const sched=t=>{clearTimeout(timer);timer=setTimeout(newHand,t||7000)};
 
 function seat(){let ch=0;Object.keys(joins).forEach(id=>{if(S.players.length<4&&!S.players.some(p=>p.id==id)){S.players.push({id,name:joins[id],chips:START});ch=1}});if(ch)push()}
 function start(){S.startTs=Date.now();S.dealer=-1;S.hand=0;newHand()}
 function reset(){S={phase:'lobby',players:[]};seat();push()}
 
-function newHand(){clearTimeout(timer);const P=S.players;
+function newHand(){clearTimeout(timer);const P=S.players;P.forEach(p=>{if(p.chips<=0&&!p.out)p.out=Date.now()});
 P.forEach(p=>{p.in=p.chips>0&&!p.away?1:0;p.bet=p.tot=p.allin=p.acted=0;p.folded=!p.in;p.hole=[];p.sc=0});
 const al=P.filter(p=>p.in);
-if(al.length<2&&P.filter(p=>p.chips>0).length>=2){S.phase='show';S.msg='離席中のプレイヤーがいます。復帰待ち…';sched();return push()}
-if(al.length<2){S.phase='over';S.reveal=0;S.msg=al[0]?al[0].name+' の優勝！':'終了';return push()}
+const wc=P.filter(p=>p.chips>0).length;
+if(al.length<2&&(wc>=2||(Date.now()-S.startTs<REL&&P.length>1))){S.phase='show';S.msg=wc>=2?'離席中のプレイヤーがいます。復帰待ち…':'リエントリー待ち…';sched();return push()}
+if(al.length<2){S.phase='over';S.reveal=0;S.msg=al[0]?al[0].name+' の優勝！':'終了';S.rank=[...P].sort((a,b)=>(b.chips>0)-(a.chips>0)||(b.out||0)-(a.out||0)).map(p=>({n:p.name,r:p.re||0}));return push()}
 S.lv=Math.min(4,(Date.now()-S.startTs)/LVMS|0);const [sb,bb,an]=LV[S.lv];
 S.bb=bb;S.phase='play';S.hand++;S.board=[];S.street=0;S.reveal=0;S.msg='';
 S.dealer=nx(S.dealer,p=>p.in);
@@ -39,9 +40,10 @@ const post=(p,a)=>{a=Math.min(a,p.chips);p.chips-=a;p.bet+=a;p.tot+=a;if(!p.chip
 post(P[si],sb);post(P[bi],bb);S.cur=bb;S.min=bb;S.turn=bi;
 S.log=['— ハンド#'+S.hand+'  '+sb+'/'+bb+(an?' アンティ'+an:'')];adv();push()}
 
-const aw=()=>{const p=S.players[S.turn];if(p&&p.away)act(S.turn,S.cur>p.bet?'f':'c')};
+const aw=()=>{clearTimeout(tt);const p=S.players[S.turn];if(!p)return;if(p.away)act(S.turn,S.cur>p.bet?'f':'c');else{S.dl=Date.now()+TURN;tt=setTimeout(()=>{if(S.phase=='play'&&S.players[S.turn]===p){p.to=(p.to||0)+1;if(p.to>=2)p.away=1;act(S.turn,S.cur>p.bet?'f':'c')}},TURN)}};
+function reentry(id){const p=S.players.find(q=>q.id==id);if(!p||S.phase=='lobby'||S.phase=='over'||p.chips>0||(S.phase=='play'&&p.in)||Date.now()-S.startTs>=REL)return;p.chips=START;p.out=0;p.away=0;p.re=(p.re||0)+1;S.log=(S.log||[]).concat(p.name+' がリエントリー').slice(-8);push()}
 function adv(){const P=S.players,live=P.filter(p=>!p.folded);
-if(live.length==1){const w=live[0],t=P.reduce((s,p)=>s+p.tot,0);w.chips+=t;S.msg=w.name+' が '+t+' を獲得(他全員フォールド)';S.phase='show';S.reveal=0;sched();return}
+if(live.length==1){const w=live[0],t=P.reduce((s,p)=>s+p.tot,0);w.chips+=t;S.msg=w.name+' が '+t+' を獲得(他全員フォールド)';S.win=[{n:w.name,v:t}];S.hn={};if(!S.mp||t>S.mp.v)S.mp={v:t,n:w.name,h:S.hand};S.phase='show';S.reveal=0;sched();return}
 const ca=live.filter(p=>!p.allin);
 if(!ca.every(p=>p.bet>=S.cur&&(p.acted||ca.length==1))){S.turn=nx(S.turn,p=>!p.folded&&!p.allin);aw();return}
 P.forEach(p=>{p.bet=0;p.acted=0});S.cur=0;S.min=S.bb;
@@ -57,7 +59,7 @@ let el=P.filter(p=>!p.folded&&p.tot>=l);if(!el.length)el=P.filter(p=>p.tot>=l);
 const m=Math.max(...el.map(p=>p.sc)),w=el.filter(p=>p.sc==m),sh=Math.floor(amt/w.length);
 w.forEach(p=>{p.chips+=sh;res[p.name]=(res[p.name]||0)+sh});w[0].chips+=amt-sh*w.length;prev=l});
 S.reveal=1;S.phase='show';
-S.msg=Object.entries(res).map(([n,v])=>n+' +'+v).join(' / ')+'  ('+P.filter(p=>!p.folded).map(p=>p.name+':'+HN[p.sc/759375|0]).join(', ')+')';sched()}
+S.msg=Object.entries(res).map(([n,v])=>n+' +'+v).join(' / ')+'  ('+P.filter(p=>!p.folded).map(p=>p.name+':'+HN[p.sc/759375|0]).join(', ')+')';S.win=Object.entries(res).map(([n,v])=>({n,v}));S.hn={};P.filter(p=>!p.folded).forEach(p=>S.hn[p.name]=HN[p.sc/759375|0]);{const tp=P.reduce((s,p)=>s+p.tot,0);if(!S.mp||tp>S.mp.v)S.mp={v:tp,n:S.win.map(w=>w.n).join('・'),h:S.hand}}sched(P.filter(p=>!p.folded).length>1&&P.some(p=>!p.folded&&p.allin)?13000:0)}
 
 function act(i,t,a){const p=S.players[i],need=S.cur-p.bet;let tx='フォールド';
 if(t=='f')p.folded=1;
@@ -75,6 +77,7 @@ if(S.phase=='lobby'){S.players=S.players.filter(p=>p.id!=id);delete joins[id];if
 msg(id,m){if(m.k=='act'&&['f','c','r'].includes(m.t)&&Number.isFinite(+m.a))handleAct(id,m.t,+m.a);
 else if(m.k=='away')handleAway(id,m.v);
 else if(id==hostId&&m.k=='start'&&S.phase=='lobby'&&S.players.length>1)start();
+else if(m.k=='re')reentry(id);
 else if(id==hostId&&m.k=='reset')reset()}}}
 const rooms={};
 const srv=http.createServer((q,r)=>fs.readFile(path.join(__dirname,'index.html'),(e,d)=>{r.writeHead(e?500:200,{'content-type':'text/html; charset=utf-8'});r.end(e?'error':d)}));
