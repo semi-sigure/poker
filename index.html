@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>テキサスホールデム 4人卓</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#0b1f16;--felt:#145a32;--tx:#f2f5f3;--mu:#9bb5a6;--ac:#f4c542;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,"Hiragino Sans",sans-serif}
+#app{max-width:640px;margin:0 auto;padding:10px}
+.bar{font-size:12px;color:var(--mu)}
+.table{background:var(--felt);border-radius:24px;padding:12px;margin:8px 0;border:3px solid #0d3b22}
+.board{display:flex;gap:6px;justify-content:center;min-height:56px;margin:8px 0}
+.pot{text-align:center;font-weight:700;color:var(--ac)}
+.seats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seat{background:#0b1f1699;border-radius:12px;padding:8px;border:2px solid transparent;min-height:96px}
+.seat.turn{border-color:var(--ac)}.seat.fold{opacity:.45}.seat.me{background:#000a}
+.card{display:inline-block;width:32px;height:46px;border-radius:6px;background:#fff;color:#111;font-weight:700;text-align:center;line-height:46px;font-size:14px;margin-right:3px}
+.board .card{width:40px;height:56px;line-height:56px;font-size:17px}
+.card.r{color:#c0392b}.card.b{background:repeating-linear-gradient(45deg,#234,#234 4px,#456 4px,#456 8px);color:transparent}
+input{font:inherit;padding:9px;border-radius:8px;border:0;width:140px}button{font:inherit;padding:10px 14px;border-radius:10px;border:0;background:#2e7d57;color:#fff}
+button.f{background:#8b2e2e}button.a{background:#b8860b}button:disabled{opacity:.4}
+.ctl{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+input[type=range]{flex:1;min-width:120px}
+.log{font-size:12px;color:var(--mu);margin-top:8px}
+.oval{position:relative;height:440px;margin:8px 0}
+.felt{position:absolute;inset:56px 36px;border-radius:50%;background:radial-gradient(#1b7a45,#145a32);border:6px solid #0d3b22;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.oval .seat{position:absolute;width:112px;min-height:0;padding:6px;font-size:12px}
+.p0{bottom:0;left:50%;transform:translateX(-50%)}.p1{left:0;top:50%;transform:translateY(-50%)}.p2{top:0;left:50%;transform:translateX(-50%)}.p3{right:0;top:50%;transform:translateY(-50%)}
+.oval .card{width:26px;height:38px;line-height:38px;font-size:12px;margin-right:2px}
+.felt .board .card{width:30px;height:42px;line-height:42px;font-size:13px}
+.felt .board{min-height:44px;margin:4px 0;gap:3px}
+.away{color:#e69a2e}.pb{height:6px;background:#0b1f16;border-radius:3px;overflow:hidden;margin:4px 0}.pb i{display:block;height:100%;background:var(--ac)}.bar b{color:var(--tx)}
+</style></head><body><div id="app"><div class="bar" id="bar"></div><div id="main">読み込み中…</div></div>
+<script>
+const LV=[[10,20,0],[20,40,10],[30,60,15],[50,100,25],[100,200,50]],LVMS=720000,START=5000;
+const HN=['ハイカード','ワンペア','ツーペア','スリーカード','ストレート','フラッシュ','フルハウス','フォーカード','ストレートフラッシュ'];
+const $=id=>document.getElementById(id),rk=c=>c%13+2,su=c=>c/13|0;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
+const cs=c=>({11:'J',12:'Q',13:'K',14:'A'}[rk(c)]||rk(c))+'♣♦♥♠'[su(c)];
+const cardH=(c,hide)=>hide?'<span class="card b">?</span>':`<span class="card ${su(c)==1||su(c)==2?'r':''}">${cs(c)}</span>`;
+function s5(c){const r=c.map(rk).sort((a,b)=>b-a),fl=c.every(x=>su(x)==su(c[0]));let st=0;if(new Set(r).size==5){if(r[0]-r[4]==4)st=r[0];else if(r[0]==14&&r[1]==5)st=5}
+const n={};r.forEach(x=>n[x]=(n[x]||0)+1);const g=Object.entries(n).map(([k,v])=>[v,+k]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]),k=g.map(x=>x[1]),a=g[0][0],b=g[1]?g[1][0]:0;
+const cat=fl&&st?8:a==4?7:a==3&&b==2?6:fl?5:st?4:a==3?3:a==2&&b==2?2:a==2?1:0,t=st?[st]:k;let v=cat;for(let i=0;i<5;i++)v=v*15+(t[i]||0);return v}
+function best(c){let m=0;for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++){const s=s5(c.filter((_,k)=>k!=i&&k!=j));if(s>m)m=s}return m}
+
+let POS=[],net=0,room='',ws,uid,myName,S={phase:'lobby',players:[]},isHost=false;
+const err=m=>{$('main').innerHTML='<p>'+esc(m)+'</p><p><button onclick="location.reload()">戻る</button></p>'};
+const menuH=()=>`<h3>テキサスホールデム</h3><p><input id="nm" maxlength="12" placeholder="名前"></p><p><button onclick="go(1)">ルームを作る</button></p><p><input id="rc" placeholder="ルームコード" value="${esc(location.hash.slice(1))}"> <button onclick="go(0)">参加</button></p>`;
+const gid=()=>{try{return sessionStorage.pid||(sessionStorage.pid=Math.random().toString(36).slice(2,12))}catch(e){return Math.random().toString(36).slice(2,12)}};
+const tx=o=>ws.send(JSON.stringify(o)),start=()=>tx({k:'start'}),reset=()=>tx({k:'reset'}),send=(t,a)=>tx({k:'act',t,a:a||0});
+function go(create){myName=$('nm').value||'プレイヤー';room=create?Math.random().toString(36).slice(2,7):$('rc').value.trim().toLowerCase();uid=gid();
+ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/?room='+room+'&id='+uid+'&name='+encodeURIComponent(myName)+(create?'&create=1':''));
+ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.k=='st'){S=m.s;isHost=S.host==uid;net=1;render()}else if(m.k=='err'){net=0;err(m.m)}};
+ws.onclose=()=>{if(net){net=0;err('接続が切れました。再読み込みすると席に戻れます')}};
+ws.onerror=()=>err('接続できませんでした');
+setInterval(()=>ws.readyState==1&&tx({k:'ping'}),25000)}
+const toggleAway=()=>{const m=S.players.find(p=>p.id==uid);if(m)tx({k:'away',v:m.away?0:1})};
+const awayH=()=>{const m=S.players.find(p=>p.id==uid);return m&&S.phase!='lobby'&&S.phase!='over'?`<div class="ctl"><button class="${m.away?'a':''}" onclick="toggleAway()">${m.away?'復帰する':'離席する'}</button></div>`:''};
+function copyLink(){const u=location.href.split('#')[0]+'#'+room;(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>alert('リンクをコピーしました'),()=>prompt('このリンクをコピーしてください',u))}
+
+function seatH(p,i){const me=p.id==uid,inH=S.phase!='over'&&p.in&&!p.folded,show=me||(S.reveal&&!p.folded);
+return `<div class="seat p${POS[i]} ${me?'me':''} ${S.phase=='play'&&S.turn==i?'turn':''} ${p.folded&&p.in?'fold':''}"><b>${esc(p.name)}</b>${i==S.dealer?' 🅓':''}${p.allin?' ALL-IN':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' (脱落)':''}<br>${p.chips} <small>(${S.bb?(p.chips/S.bb).toFixed(0):'-'}BB)</small>${p.bet?' / ベット '+p.bet:''}<div>${inH?p.hole.map(c=>cardH(c,!show)).join(''):''}</div></div>`}
+
+function ctl(){const p=S.players[S.turn];if(S.phase!='play')return '';
+if(!p||p.id!=uid)return `<div class="pot">${p?esc(p.name)+' の番…':''}</div>`;
+const need=S.cur-p.bet,mx=p.bet+p.chips,mn=Math.min(S.cur+S.min,mx);
+let h=`<div class="pot">あなたの番です</div><div class="ctl"><button class="f" onclick="send('f')">フォールド</button><button onclick="send('c')">${need>0?'コール '+Math.min(need,p.chips):'チェック'}</button></div>`;
+if(mx>S.cur)h+=`<div class="ctl"><input type="range" id="r" min="${mn}" max="${mx}" step="5" value="${mn}" oninput="$('rv').textContent=this.value"><b id="rv">${mn}</b><button onclick="send('r',+$('r').value)">${S.cur?'レイズ':'ベット'}</button><button class="a" onclick="send('r',${mx})">オールイン</button></div>`;
+return h}
+
+function render(){if(!net){$('main').innerHTML=menuH();return}const P=S.players;let h;{const n=P.length,mi=Math.max(0,P.findIndex(p=>p.id==uid)),mp={2:[0,2],3:[0,1,3]}[n]||[0,1,2,3];P.forEach((_,i)=>POS[i]=mp[(i-mi+n)%n])}
+if(S.phase=='lobby')h=`<h3>ロビー</h3>${P.map(p=>'<div>'+esc(p.name)+(p.id==uid?'(あなた)':'')+'</div>').join('')||'参加者を待っています…'}<p>${isHost?`<button ${P.length<2?'disabled':''} onclick="start()">ゲーム開始 (${P.length}/4人)</button>`:'ホストの開始を待っています'}</p><p><button onclick="copyLink()">🔗 COPY LINK</button></p><p class="bar">ルームコード: <b>${room}</b>${location.protocol=='file:'?'':'<br>招待リンク: '+esc(location.href.split('#')[0]+'#'+room)}</p><p class="bar">開始スタック ${START}チップ(250BB)・最大4人</p>`;
+else h=`<div class="oval"><div class="felt"><div class="pot">ポット ${P.reduce((s,p)=>s+p.tot,0)}</div><div class="board">${(S.board||[]).map(c=>cardH(c)).join('')}</div></div>${P.map(seatH).join('')}</div>${ctl()}${awayH()}${S.msg?'<p class="pot">'+esc(S.msg)+'</p>':''}<div class="log">${(S.log||[]).slice().reverse().map(esc).join('<br>')}</div>${S.phase=='over'&&isHost?'<p><button onclick="reset()">ロビーに戻る</button></p>':''}`;
+$('main').innerHTML=h}
+
+setInterval(()=>{if(!S.startTs||S.phase=='lobby'){$('bar').innerHTML='';return}const el=Date.now()-S.startTs,l=Math.min(4,el/LVMS|0),r=LVMS-el%LVMS,f=n=>n[0]+'/'+n[1]+(n[2]?' (A:'+n[2]+')':''),m=l<4?String(r/60000|0).padStart(2,'0')+':'+String(r/1000%60|0).padStart(2,'0'):'--:--';
+$('bar').innerHTML=`<b>Lv${l+1}</b> ブラインド <b>${f(LV[l])}</b> ・ 次のレベルまで <b style="color:var(--ac);font-size:16px">${m}</b>${l<4?' → '+f(LV[l+1]):'(最終)'} ・ ハンド#${S.hand||0}<div class="pb"><i style="width:${l<4?(el%LVMS)/LVMS*100:100}%"></i></div>`},1000);
+
+render();
+</script></body></html>
