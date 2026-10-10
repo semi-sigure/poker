@@ -157,9 +157,15 @@ body{background:radial-gradient(circle at 12% 18%,#ff3df244 0,#0000 22%),radial-
 .stkb{position:absolute;bottom:4%;text-align:center;font-weight:900;color:#ffd24d;text-shadow:0 0 10px #000,0 0 18px #f90;animation:stk 2.8s forwards}.stkb small{display:block;color:#fff;font-size:18px}.stkb span{font-size:min(7vw,40px)}
 .stkb.k0{left:4%}.stkb.k1{right:4%}@keyframes stk{0%{opacity:0}20%,80%{opacity:1}100%{opacity:0}}
 @media(min-width:800px){.mc{width:200px}.mc img{width:170px;height:170px}.tc{width:64px;height:64px;font-size:20px}.tc.d{font-size:28px}.chr{height:80vh}}
+.oval .seat{align-items:flex-end;width:176px}
+.sc{height:70px;width:auto;flex:none;margin-right:-26px;position:relative;z-index:0;filter:drop-shadow(0 2px 6px #000a);pointer-events:none}
+.si{position:relative;z-index:1}
+.seat.fold .sc{filter:grayscale(.85) brightness(.55)}.seat.turn .sc{filter:drop-shadow(0 0 10px var(--ac))}
+.seat.me .sc{height:84px}
+@media(min-width:800px){.oval .seat{width:330px}.sc{height:150px;margin-right:-54px}.seat.me .sc{height:170px}.oval .seat.me{min-width:360px;width:auto}}
 </style></head><body><div id="app"><div class="bar" id="bar"></div><div id="main">読み込み中…</div></div>
 <script>
-const LV=[[10,20,0],[20,40,10],[30,60,15],[50,100,25],[100,200,50]],LVMS=720000,START=5000;
+const LV=[[10,20,5],[20,40,10],[30,60,15],[40,80,20],[50,100,25]],LVMS=720000,START=5000;
 const HN=['ハイカード','ワンペア','ツーペア','スリーカード','ストレート','フラッシュ','フルハウス','フォーカード','ストレートフラッシュ'];
 const $=id=>document.getElementById(id),rk=c=>c%13+2,su=c=>c/13|0;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
@@ -173,7 +179,7 @@ function best(c){let m=0;for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++
 
 let HL=null,POS=[],net=0,room='',ws,uid,myName,S={phase:'lobby',players:[]},isHost=false;
 const err=m=>{$('main').innerHTML='<p>'+esc(m)+'</p><p><button onclick="location.reload()">戻る</button></p>'};
-let MEM=[],autoTried=0;
+let MEM=[],autoTried=0,preDone=0;
 const menuH=()=>`<h3>テキサスホールデム</h3><p class="bar">名前を選んで入室してください</p><div class="mem">${MEM.map(m=>`<button class="mc" ${m.online?'disabled':''} onclick="go('${m.id}')"><img src="/img/${m.img}" alt=""><b>${esc(m.name)}</b>${m.online?'<small>入室中</small>':''}</button>`).join('')||'読み込み中…'}</div>`;
 const tx=o=>ws.send(JSON.stringify(o)),start=()=>tx({k:'start'}),reset=()=>tx({k:'reset'}),send=(t,a)=>tx({k:'act',t,a:a||0});
 function go(id){uid=id;try{sessionStorage.pid=id}catch(e){}
@@ -183,13 +189,14 @@ ws.onclose=()=>{if(net){net=0;err('接続が切れました。再読み込みす
 ws.onerror=()=>err('接続できませんでした');
 setInterval(()=>ws.readyState==1&&tx({k:'ping'}),25000)}
 async function loadMem(){try{MEM=await(await fetch('/api/members')).json()}catch(e){return}
+if(!preDone){preDone=1;MEM.forEach(m=>['','_low','_high'].forEach(v=>{new Image().src='/img/'+m.img.replace('.png',v+'.png')}))}
 if(!ws){render();try{const p=sessionStorage.pid;if(p&&!autoTried&&MEM.some(m=>m.id==p)){autoTried=1;go(p)}}catch(e){}}else if(net&&S.phase=='lobby')render()}
 setInterval(loadMem,3000);loadMem();
 const toggleAway=()=>{const m=S.players.find(p=>p.id==uid);if(m)tx({k:'away',v:m.away?0:1})};
 const F=n=>Number(n).toLocaleString();
 const pre=v=>{const n=$('rn'),r=$('r'),x=Math.max(+n.min,Math.min(+n.max,Math.round(v/5)*5));n.value=r.value=x;$('rt').textContent=F(x)};
 let shownH=0;
-function cut(p,stk){const d=document.createElement('div');d.className='cut wc';d.innerHTML=`<div class="band"><span class="who">${esc(p.name)}</span><span class="big">ALL-IN</span><span class="amt">${F(stk==null?p.bet:stk)}</span></div>${p.img?'<img class="chr" src="/img/'+p.img+'" onerror="this.remove()">':''}`;document.body.appendChild(d);document.body.classList.add('shk');setTimeout(()=>document.body.classList.remove('shk'),450);setTimeout(()=>d.remove(),1900)}
+function cut(p,stk){const d=document.createElement('div');d.className='cut wc';d.innerHTML=`<div class="band"><span class="who">${esc(p.name)}</span><span class="big">ALL-IN</span><span class="amt">${F(stk==null?p.bet:stk)}</span></div>${p.img?'<img class="chr" src="'+imgV(p.img,stk==null?p.chips:stk)+'" onerror="this.remove()">':''}`;document.body.appendChild(d);document.body.classList.add('shk');setTimeout(()=>document.body.classList.remove('shk'),450);setTimeout(()=>d.remove(),1900)}
 function sd(b,pre){const L=b.players.filter(p=>!p.folded&&p.in),o=document.createElement('div'),win=(b.win||[]).map(w=>w.n),bd=b.board||[];o.className='sd';
 o.innerHTML=`<div class="sdt">ALL-IN SHOWDOWN</div><div class="sdp">${L.map(p=>`<div class="sdc" data-n="${esc(p.name)}"><b>${esc(p.name)}</b><div>${(p.hole||[]).map((c,k)=>`<span class="flip" style="animation-delay:${.4+k*.25}s">${cardH(c)}</span>`).join('')}</div><small>${F(p.tot)} 投入</small><div class="eq"></div></div>`).join('')}</div><div class="sdb">${[0,1,2,3,4].map(k=>`<span class="slot" id="bs${k}">${k<pre&&bd[k]!=null?cardH(bd[k]):''}</span>`).join('')}</div><div class="sdw"></div><button class="sdx" onclick="this.parentNode.remove()">閉じる</button>`;
 document.body.appendChild(o);let t=1600;let pk=pre;const holes=L.map(p=>p.hole),upd=k=>{const mm=L.find(p=>p.id==uid);if(mm&&k>pk){const c0=mineCat(mm.hole,bd.slice(0,pk)),c1=mineCat(mm.hole,bd.slice(0,k));if(c1>=4&&c1>c0)lt(HN[c1],c1>=7)}pk=k;const e=eqCalc(holes,bd.slice(0,k),600);o.querySelectorAll('.eq').forEach((el,i)=>el.textContent=e[i]+'%')};setTimeout(()=>upd(pre),900);
@@ -230,13 +237,14 @@ const ce=document.querySelector(sdm?'.sdb':'.felt'),fr=ce?ce.getBoundingClientRe
 w.forEach(x=>{const s=[...document.querySelectorAll(sdm?'.sdc':'.seat')].find(e=>e.dataset.n==x.n),q=s?s.getBoundingClientRect():null,sx=q?q.left+q.width/2:cx,sy=q?q.top+q.height/2:cy,f=document.createElement('div');
 f.className='pf t'+T;f.style.left=sx+'px';f.style.top=sy+'px';f.textContent='+'+F(x.v);o.appendChild(f);
 for(let i=0;i<[0,14,30,50,80][T];i++){const c=document.createElement('span');c.className='cn';c.textContent='🪙';c.style.left=cx+(rnd()-.5)*80+'px';c.style.top=cy+(rnd()-.5)*50+'px';c.style.setProperty('--dx',sx-cx+'px');c.style.setProperty('--dy',sy-cy+'px');c.style.animationDelay=rnd()*.7+'s';o.appendChild(c)}});
-if(T>=2)w.slice(0,2).forEach((x,k)=>{const pl=b.players.find(p=>p.name==x.n);if(!pl||!pl.img)return;const du=1.8+T*.5+'s',im=document.createElement('img');im.className='chr win k'+k;im.src='/img/'+pl.img;im.style.animationDuration=du;im.onerror=()=>im.remove();o.appendChild(im);const t=document.createElement('div');t.className='stkb k'+k;t.style.animationDuration=du;t.innerHTML='<small>'+esc(pl.name)+'</small><span>STACK '+F(pl.chips)+'</span>';o.appendChild(t)});
+if(T>=2)w.slice(0,2).forEach((x,k)=>{const pl=b.players.find(p=>p.name==x.n);if(!pl||!pl.img)return;const du=1.8+T*.5+'s',im=document.createElement('img');im.className='chr win k'+k;im.src=imgV(pl.img,pl.chips);im.style.animationDuration=du;im.onerror=()=>im.remove();o.appendChild(im);const t=document.createElement('div');t.className='stkb k'+k;t.style.animationDuration=du;t.innerHTML='<small>'+esc(pl.name)+'</small><span>STACK '+F(pl.chips)+'</span>';o.appendChild(t)});
 if(T>=2)for(let i=0;i<T*14;i++){const c=document.createElement('span');c.className='stc';c.textContent='🪙';c.style.left=rnd()*100+'vw';c.style.animationDelay=rnd()*1.2+'s';o.appendChild(c)}
 if(T>=3){for(let i=0;i<T*30;i++){const c=document.createElement('i');c.className='cf2';c.style.left=rnd()*100+'vw';c.style.background='hsl('+rnd()*360+',90%,60%)';c.style.animationDelay=rnd()*1.2+'s';o.appendChild(c)}document.body.classList.add('shk');setTimeout(()=>document.body.classList.remove('shk'),450)}
 if(T==4){const v=document.createElement('div');v.className='vg';o.appendChild(v);for(let k=0;k<5;k++){const bx=innerWidth*(.15+rnd()*.7),by=innerHeight*(.15+rnd()*.5),h=rnd()*360;for(let i=0;i<28;i++){const a=i/28*6.283,d=80+rnd()*80,p=document.createElement('i');p.className='fw';p.style.left=bx+'px';p.style.top=by+'px';p.style.background='hsl('+h+',100%,65%)';p.style.setProperty('--dx',Math.cos(a)*d+'px');p.style.setProperty('--dy',Math.sin(a)*d+'px');p.style.animationDelay=k*.4+'s';o.appendChild(p)}}}
 if(T>=1){const d=document.createElement('div');d.className='pb2 '+K;d.style.animationDuration=1.8+T*.5+'s';d.innerHTML='<b>'+['','NICE POT','BIG POT!!','HUGE POT!!!','MEGA POT'][T]+'</b><small>+'+F(tot)+' ('+r.toFixed(0)+'BB)</small>';o.appendChild(d)}
 setTimeout(()=>o.remove(),2600+T*600)}
 const laC=t=>t.startsWith('フォールド')?'lf':/レイズ|ベット/.test(t)?'lr':t.includes('コール')?'lc':'lk';
+const LOWS=2000,HIGHS=8000,imgV=(f,c)=>'/img/'+f.replace('.png',(c<=LOWS?'_low':c>=HIGHS?'_high':'')+'.png');
 function posH(p,i){if(S.phase=='lobby'||S.phase=='over')return '';const d=(i==S.dealer?'<span class="tc d">D</span>':'')+(i==S.si?'<span class="tc sb">SB</span>':'')+(i==S.bi?'<span class="tc bb">BB</span>':'');return d?'<div class="tpb tp'+POS[i]+'">'+d+'</div>':''}
 function bup(b){const [s,bb,an]=LV[b.lv],d=document.createElement('div');d.className='cut bl';d.innerHTML=`<div class="band"><span class="who">LEVEL ${b.lv+1}</span><span class="big">BLINDS UP</span><span class="amt">${s} / ${bb}${an?'  ANTE '+an:''}</span></div>`;document.body.appendChild(d);setTimeout(()=>d.remove(),1900)}
 setInterval(()=>{document.querySelectorAll('.tb').forEach(e=>{const ms=S.dl-(Date.now()+off),r=ms/25000;e.style.width=Math.max(0,Math.min(1,r))*100+'%';e.parentNode.classList.toggle('lo',r<.3);const s=$('sec');if(s)s.textContent=Math.max(0,Math.ceil(ms/1000))+'秒'})},250);
@@ -245,7 +253,7 @@ function copyLink(){const u=location.href.split('#')[0]+'#'+room;(navigator.clip
 
 function seatH(p,i){const me=p.id==uid,inH=S.phase!='over'&&p.in&&!p.folded,show=me||(S.reveal&&!p.folded),hu=[...p.name].reduce((q,ch)=>q+ch.charCodeAt(0)*31,0)%360,lb=S.phase!='lobby',la=p.folded&&p.in?'フォールド':(S.phase=='play'||S.phase=='show')&&p.la?p.la:'',tn=S.phase=='play'&&S.turn==i,
 pos=lb?(i==S.dealer?'<span class="pb d">D</span>':'')+(i==S.si?'<span class="pb sb">SB</span>':'')+(i==S.bi?'<span class="pb bb">BB</span>':''):'';
-return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)"><div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div></div>${la?'<div class="la '+laC(la)+'">'+esc(la)+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}<div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
+return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)">${p.img?'<img class="sc" src="'+imgV(p.img,p.chips)+'" alt="">':''}<div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div></div>${la?'<div class="la '+laC(la)+'">'+esc(la)+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}<div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
 function ctl(){const p=S.players[S.turn];if(S.phase!='play')return '';
 if(!p||p.id!=uid)return `<div class="pot">${p?esc(p.name)+' の番…':''}</div>`;
 const need=S.cur-p.bet,mx=p.bet+p.chips,mn=Math.min(S.cur+S.min,mx);
