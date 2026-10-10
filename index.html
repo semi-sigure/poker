@@ -132,6 +132,31 @@ body{background:radial-gradient(circle at 12% 18%,#ff3df244 0,#0000 22%),radial-
 .felt .board .card{width:76px;height:106px;font-size:30px}.seat.me .hc .card{width:72px;height:102px;font-size:30px}.oval .card{width:48px;height:68px;font-size:20px}
 .act{position:fixed;right:24px;bottom:24px;width:340px;z-index:20}
 #bar{position:fixed;left:18px;top:14px;z-index:20;text-align:left;font-size:15px}}
+.oval{margin-top:12px}.dealer{display:none}
+.si{border:2px solid var(--hc)}.seat.turn .si{border-color:var(--ac);box-shadow:0 0 18px #f4c54299;animation:spk 1s infinite}
+.pos{display:flex;gap:4px;flex:none}
+.pb{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;font-weight:900;font-size:12px;color:#fff;border:3px solid #fff;box-shadow:0 2px 6px #000}
+.pb.d{background:radial-gradient(#fff,#ddd);color:#111;font-size:16px;border-color:#f4c542;box-shadow:0 0 12px #f4c542,0 2px 6px #000}
+.pb.sb{background:linear-gradient(#3b8cff,#1b4fd0);border-color:#9cc4ff;box-shadow:0 0 12px #3b8cff,0 2px 6px #000}
+.pb.bb{background:linear-gradient(#ff5470,#c4153a);border-color:#ffb3c1;box-shadow:0 0 12px #ff5470,0 2px 6px #000}
+.la{margin-left:4px}
+@media(min-width:800px){.oval{margin-top:20px}.pb{width:46px;height:46px;font-size:17px}.pb.d{font-size:24px}.la{margin-left:8px}}
+.mem{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+.mc{width:140px;padding:10px;background:#12163acc;border:2px solid #6a5cff77;color:#fff;border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.mc img{width:110px;height:110px;object-fit:contain}.mc:disabled,.mc.off{opacity:.4}.mc small{color:var(--mu)}
+.tpb{position:absolute;display:flex;gap:6px;z-index:3;transform:translate(-50%,-50%)}
+.tp0{left:50%;top:80%}.tp1{left:17%;top:50%}.tp2{left:50%;top:20%}.tp3{left:83%;top:50%}
+.tc{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#fff;border:4px dashed #ffffffcc;outline:3px solid;box-shadow:0 4px 10px #000a;animation:pop2 .5s}
+.tc.d{background:#f5f5f5;color:#111;outline-color:#f4c542;font-size:20px}.tc.sb{background:#2b6bff;outline-color:#2b6bff}.tc.bb{background:#e5304f;outline-color:#e5304f}
+@keyframes pop2{from{transform:scale(2);opacity:0}}
+.chr{position:absolute;bottom:0;left:2%;height:56vh;max-width:70vw;object-fit:contain;object-position:bottom;filter:drop-shadow(0 0 18px #000);animation:chin 1.9s forwards}
+@keyframes chin{0%{transform:translateX(-120%)}18%,82%{transform:none}100%{transform:translateX(-120%)}}
+.cut.wc .band{padding-left:30%}
+.chr.win{left:auto;animation:cup 2.8s forwards}.chr.win.k0{left:2%}.chr.win.k1{right:2%}
+@keyframes cup{0%{transform:translateY(110%)}18%,82%{transform:none}100%{transform:translateY(110%)}}
+.stkb{position:absolute;bottom:4%;text-align:center;font-weight:900;color:#ffd24d;text-shadow:0 0 10px #000,0 0 18px #f90;animation:stk 2.8s forwards}.stkb small{display:block;color:#fff;font-size:18px}.stkb span{font-size:min(7vw,40px)}
+.stkb.k0{left:4%}.stkb.k1{right:4%}@keyframes stk{0%{opacity:0}20%,80%{opacity:1}100%{opacity:0}}
+@media(min-width:800px){.mc{width:200px}.mc img{width:170px;height:170px}.tc{width:64px;height:64px;font-size:20px}.tc.d{font-size:28px}.chr{height:80vh}}
 </style></head><body><div id="app"><div class="bar" id="bar"></div><div id="main">読み込み中…</div></div>
 <script>
 const LV=[[10,20,0],[20,40,10],[30,60,15],[50,100,25],[100,200,50]],LVMS=720000,START=5000;
@@ -148,27 +173,30 @@ function best(c){let m=0;for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++
 
 let HL=null,POS=[],net=0,room='',ws,uid,myName,S={phase:'lobby',players:[]},isHost=false;
 const err=m=>{$('main').innerHTML='<p>'+esc(m)+'</p><p><button onclick="location.reload()">戻る</button></p>'};
-const menuH=()=>`<h3>テキサスホールデム</h3><p><input id="nm" maxlength="12" placeholder="名前"></p><p><button onclick="go(1)">ルームを作る</button></p><p><input id="rc" placeholder="ルームコード" value="${esc(location.hash.slice(1))}"> <button onclick="go(0)">参加</button></p>`;
-const gid=()=>{try{return sessionStorage.pid||(sessionStorage.pid=Math.random().toString(36).slice(2,12))}catch(e){return Math.random().toString(36).slice(2,12)}};
+let MEM=[],autoTried=0;
+const menuH=()=>`<h3>テキサスホールデム</h3><p class="bar">名前を選んで入室してください</p><div class="mem">${MEM.map(m=>`<button class="mc" ${m.online?'disabled':''} onclick="go('${m.id}')"><img src="/img/${m.img}" alt=""><b>${esc(m.name)}</b>${m.online?'<small>入室中</small>':''}</button>`).join('')||'読み込み中…'}</div>`;
 const tx=o=>ws.send(JSON.stringify(o)),start=()=>tx({k:'start'}),reset=()=>tx({k:'reset'}),send=(t,a)=>tx({k:'act',t,a:a||0});
-function go(create){myName=$('nm').value||'プレイヤー';room=create?Math.random().toString(36).slice(2,7):$('rc').value.trim().toLowerCase();uid=gid();
-ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/?room='+room+'&id='+uid+'&name='+encodeURIComponent(myName)+(create?'&create=1':''));
+function go(id){uid=id;try{sessionStorage.pid=id}catch(e){}
+ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/?id='+id);
 ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.k=='st'){off=m.s.now-Date.now();const a=S;S=m.s;isHost=S.host==uid;net=1;render();fx(a,S)}else if(m.k=='err'){net=0;err(m.m)}};
-ws.onclose=()=>{if(net){net=0;err('接続が切れました。再読み込みすると席に戻れます')}};
+ws.onclose=()=>{if(net){net=0;err('接続が切れました。再読み込みすると同じ席に戻れます')}};
 ws.onerror=()=>err('接続できませんでした');
 setInterval(()=>ws.readyState==1&&tx({k:'ping'}),25000)}
+async function loadMem(){try{MEM=await(await fetch('/api/members')).json()}catch(e){return}
+if(!ws){render();try{const p=sessionStorage.pid;if(p&&!autoTried&&MEM.some(m=>m.id==p)){autoTried=1;go(p)}}catch(e){}}else if(net&&S.phase=='lobby')render()}
+setInterval(loadMem,3000);loadMem();
 const toggleAway=()=>{const m=S.players.find(p=>p.id==uid);if(m)tx({k:'away',v:m.away?0:1})};
 const F=n=>Number(n).toLocaleString();
 const pre=v=>{const n=$('rn'),r=$('r'),x=Math.max(+n.min,Math.min(+n.max,Math.round(v/5)*5));n.value=r.value=x;$('rt').textContent=F(x)};
 let shownH=0;
-function cut(p){const d=document.createElement('div');d.className='cut';d.innerHTML=`<div class="band"><span class="who">${esc(p.name)}</span><span class="big">ALL-IN</span><span class="amt">${F(p.bet)}</span></div>`;document.body.appendChild(d);document.body.classList.add('shk');setTimeout(()=>document.body.classList.remove('shk'),450);setTimeout(()=>d.remove(),1900)}
+function cut(p,stk){const d=document.createElement('div');d.className='cut wc';d.innerHTML=`<div class="band"><span class="who">${esc(p.name)}</span><span class="big">ALL-IN</span><span class="amt">${F(stk==null?p.bet:stk)}</span></div>${p.img?'<img class="chr" src="/img/'+p.img+'" onerror="this.remove()">':''}`;document.body.appendChild(d);document.body.classList.add('shk');setTimeout(()=>document.body.classList.remove('shk'),450);setTimeout(()=>d.remove(),1900)}
 function sd(b,pre){const L=b.players.filter(p=>!p.folded&&p.in),o=document.createElement('div'),win=(b.win||[]).map(w=>w.n),bd=b.board||[];o.className='sd';
 o.innerHTML=`<div class="sdt">ALL-IN SHOWDOWN</div><div class="sdp">${L.map(p=>`<div class="sdc" data-n="${esc(p.name)}"><b>${esc(p.name)}</b><div>${(p.hole||[]).map((c,k)=>`<span class="flip" style="animation-delay:${.4+k*.25}s">${cardH(c)}</span>`).join('')}</div><small>${F(p.tot)} 投入</small><div class="eq"></div></div>`).join('')}</div><div class="sdb">${[0,1,2,3,4].map(k=>`<span class="slot" id="bs${k}">${k<pre&&bd[k]!=null?cardH(bd[k]):''}</span>`).join('')}</div><div class="sdw"></div><button class="sdx" onclick="this.parentNode.remove()">閉じる</button>`;
 document.body.appendChild(o);let t=1600;let pk=pre;const holes=L.map(p=>p.hole),upd=k=>{const mm=L.find(p=>p.id==uid);if(mm&&k>pk){const c0=mineCat(mm.hole,bd.slice(0,pk)),c1=mineCat(mm.hole,bd.slice(0,k));if(c1>=4&&c1>c0)lt(HN[c1],c1>=7)}pk=k;const e=eqCalc(holes,bd.slice(0,k),600);o.querySelectorAll('.eq').forEach((el,i)=>el.textContent=e[i]+'%')};setTimeout(()=>upd(pre),900);
 bd.forEach((c,k)=>{if(k>=pre){setTimeout(()=>{const e=o.querySelector('#bs'+k);if(e)e.innerHTML='<span class="flip">'+cardH(c)+'</span>';upd(k+1)},t);t+=1100}});
 setTimeout(()=>{potFx(b,1);o.querySelectorAll('.sdc').forEach(e=>{if(win.includes(e.dataset.n))e.classList.add('winner')});const w=o.querySelector('.sdw');if(w)w.innerHTML=(b.win||[]).map(x=>`<div class="wn">🏆 ${esc(x.n)} <small>${esc((b.hn||{})[x.n]||'')}</small> +${F(x.v)}</div>`).join('')},t+500);
 setTimeout(()=>o.remove(),12500)}
-function fx(a,b){let c=0;fx2(a,b);if(a.lv!=null&&b.lv>a.lv&&b.hand>a.hand&&b.phase=='play')bup(b);if((b.phase=='play'||b.phase=='show')&&a.phase=='play'&&a.hand==b.hand)b.players.forEach(p=>{const q=a.players.find(x=>x.id==p.id);if(q&&!q.allin&&p.allin&&!p.folded){cut(p);c=1}});
+function fx(a,b){let c=0;fx2(a,b);if(a.lv!=null&&b.lv>a.lv&&b.hand>a.hand&&b.phase=='play')bup(b);if((b.phase=='play'||b.phase=='show')&&a.phase=='play'&&a.hand==b.hand)b.players.forEach(p=>{const q=a.players.find(x=>x.id==p.id);if(q&&!q.allin&&p.allin&&!p.folded){cut(p,q.chips);c=1}});
 if(b.phase=='show'&&b.reveal&&shownH!=b.hand&&b.players.filter(p=>!p.folded&&p.in).length>1&&b.players.some(p=>p.allin&&!p.folded)){shownH=b.hand;const n=a.hand==b.hand?(a.board||[]).length:0;setTimeout(()=>sd(b,n),c?2000:0)}}
 let off=0,omT=null;const REL=LVMS*3;
 function best5(c){let m=-1,b=null;const n=c.length;(function f(s,a){if(a.length==5){const v=s5(a);if(v>m){m=v;b=a.slice()}return}for(let i=s;i<n;i++){a.push(c[i]);f(i+1,a);a.pop()}})(0,[]);return b}
@@ -202,21 +230,22 @@ const ce=document.querySelector(sdm?'.sdb':'.felt'),fr=ce?ce.getBoundingClientRe
 w.forEach(x=>{const s=[...document.querySelectorAll(sdm?'.sdc':'.seat')].find(e=>e.dataset.n==x.n),q=s?s.getBoundingClientRect():null,sx=q?q.left+q.width/2:cx,sy=q?q.top+q.height/2:cy,f=document.createElement('div');
 f.className='pf t'+T;f.style.left=sx+'px';f.style.top=sy+'px';f.textContent='+'+F(x.v);o.appendChild(f);
 for(let i=0;i<[0,14,30,50,80][T];i++){const c=document.createElement('span');c.className='cn';c.textContent='🪙';c.style.left=cx+(rnd()-.5)*80+'px';c.style.top=cy+(rnd()-.5)*50+'px';c.style.setProperty('--dx',sx-cx+'px');c.style.setProperty('--dy',sy-cy+'px');c.style.animationDelay=rnd()*.7+'s';o.appendChild(c)}});
+if(T>=2)w.slice(0,2).forEach((x,k)=>{const pl=b.players.find(p=>p.name==x.n);if(!pl||!pl.img)return;const du=1.8+T*.5+'s',im=document.createElement('img');im.className='chr win k'+k;im.src='/img/'+pl.img;im.style.animationDuration=du;im.onerror=()=>im.remove();o.appendChild(im);const t=document.createElement('div');t.className='stkb k'+k;t.style.animationDuration=du;t.innerHTML='<small>'+esc(pl.name)+'</small><span>STACK '+F(pl.chips)+'</span>';o.appendChild(t)});
 if(T>=2)for(let i=0;i<T*14;i++){const c=document.createElement('span');c.className='stc';c.textContent='🪙';c.style.left=rnd()*100+'vw';c.style.animationDelay=rnd()*1.2+'s';o.appendChild(c)}
 if(T>=3){for(let i=0;i<T*30;i++){const c=document.createElement('i');c.className='cf2';c.style.left=rnd()*100+'vw';c.style.background='hsl('+rnd()*360+',90%,60%)';c.style.animationDelay=rnd()*1.2+'s';o.appendChild(c)}document.body.classList.add('shk');setTimeout(()=>document.body.classList.remove('shk'),450)}
 if(T==4){const v=document.createElement('div');v.className='vg';o.appendChild(v);for(let k=0;k<5;k++){const bx=innerWidth*(.15+rnd()*.7),by=innerHeight*(.15+rnd()*.5),h=rnd()*360;for(let i=0;i<28;i++){const a=i/28*6.283,d=80+rnd()*80,p=document.createElement('i');p.className='fw';p.style.left=bx+'px';p.style.top=by+'px';p.style.background='hsl('+h+',100%,65%)';p.style.setProperty('--dx',Math.cos(a)*d+'px');p.style.setProperty('--dy',Math.sin(a)*d+'px');p.style.animationDelay=k*.4+'s';o.appendChild(p)}}}
 if(T>=1){const d=document.createElement('div');d.className='pb2 '+K;d.style.animationDuration=1.8+T*.5+'s';d.innerHTML='<b>'+['','NICE POT','BIG POT!!','HUGE POT!!!','MEGA POT'][T]+'</b><small>+'+F(tot)+' ('+r.toFixed(0)+'BB)</small>';o.appendChild(d)}
 setTimeout(()=>o.remove(),2600+T*600)}
-const DLR='<svg viewBox="0 0 200 150"><path d="M40 150c0-45 25-62 60-62s60 17 60 62z" fill="#12122b"/><path d="M70 100l30 50 30-50-8-10-22 24-22-24z" fill="#f4f4fb"/><path d="M52 150l14-52 20 12-12 40zM148 150l-14-52-20 12 12 40z" fill="#0a0a1c"/><path d="M62 52c0-40 76-40 76 0v52c-8-12-14-30-14-52H76c0 22-6 40-14 52z" fill="#3a2418"/><ellipse cx="100" cy="60" rx="21" ry="26" fill="#f1d3bd"/><path d="M79 52c10-14 32-14 42 0-12-6-30-6-42 0z" fill="#3a2418"/><circle cx="92" cy="60" r="2.2" fill="#2b1a14"/><circle cx="108" cy="60" r="2.2" fill="#2b1a14"/><path d="M94 74q6 4 12 0" stroke="#b3544f" stroke-width="2" fill="none"/></svg>';
-const avSvg=h=>`<svg viewBox="0 0 48 48"><rect width="48" height="48" fill="hsl(${h},45%,22%)"/><path d="M5 48c0-12 8-18 19-18s19 6 19 18z" fill="hsl(${h},55%,42%)"/><circle cx="24" cy="19" r="9" fill="#ecd0b8"/><path d="M14 18c0-9 6-13 10-13s10 4 10 13c-2-5-6-7-10-7s-8 2-10 7z" fill="hsl(${(h+40)%360},35%,18%)"/></svg>`;
 const laC=t=>t.startsWith('フォールド')?'lf':/レイズ|ベット/.test(t)?'lr':t.includes('コール')?'lc':'lk';
+function posH(p,i){if(S.phase=='lobby'||S.phase=='over')return '';const d=(i==S.dealer?'<span class="tc d">D</span>':'')+(i==S.si?'<span class="tc sb">SB</span>':'')+(i==S.bi?'<span class="tc bb">BB</span>':'');return d?'<div class="tpb tp'+POS[i]+'">'+d+'</div>':''}
 function bup(b){const [s,bb,an]=LV[b.lv],d=document.createElement('div');d.className='cut bl';d.innerHTML=`<div class="band"><span class="who">LEVEL ${b.lv+1}</span><span class="big">BLINDS UP</span><span class="amt">${s} / ${bb}${an?'  ANTE '+an:''}</span></div>`;document.body.appendChild(d);setTimeout(()=>d.remove(),1900)}
 setInterval(()=>{document.querySelectorAll('.tb').forEach(e=>{const ms=S.dl-(Date.now()+off),r=ms/25000;e.style.width=Math.max(0,Math.min(1,r))*100+'%';e.parentNode.classList.toggle('lo',r<.3);const s=$('sec');if(s)s.textContent=Math.max(0,Math.ceil(ms/1000))+'秒'})},250);
 const awayH=()=>{const m=S.players.find(p=>p.id==uid);return m&&S.phase!='lobby'&&S.phase!='over'?`<div class="ctl"><button class="${m.away?'a':''}" onclick="toggleAway()">${m.away?'復帰する':'離席する'}</button></div>`:''};
 function copyLink(){const u=location.href.split('#')[0]+'#'+room;(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>alert('リンクをコピーしました'),()=>prompt('このリンクをコピーしてください',u))}
 
-function seatH(p,i){const me=p.id==uid,inH=S.phase!='over'&&p.in&&!p.folded,show=me||(S.reveal&&!p.folded),hu=[...p.name].reduce((q,ch)=>q+ch.charCodeAt(0)*31,0)%360,bg=S.phase=='lobby'?'':[i==S.dealer?'D':'',i==S.si?'SB':'',i==S.bi?'BB':''].filter(Boolean).join('/'),la=p.folded&&p.in?'フォールド':(S.phase=='play'||S.phase=='show')&&p.la?p.la:'',tn=S.phase=='play'&&S.turn==i;
-return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)"><div class="avw"><span class="av2">${avSvg(hu)}</span>${bg?'<span class="bdg'+(bg[0]=='D'?' d':bg.includes('BB')?' bb':'')+'">'+bg+'</span>':''}</div><div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div></div>${la?'<div class="la '+laC(la)+'">'+esc(la)+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}<div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
+function seatH(p,i){const me=p.id==uid,inH=S.phase!='over'&&p.in&&!p.folded,show=me||(S.reveal&&!p.folded),hu=[...p.name].reduce((q,ch)=>q+ch.charCodeAt(0)*31,0)%360,lb=S.phase!='lobby',la=p.folded&&p.in?'フォールド':(S.phase=='play'||S.phase=='show')&&p.la?p.la:'',tn=S.phase=='play'&&S.turn==i,
+pos=lb?(i==S.dealer?'<span class="pb d">D</span>':'')+(i==S.si?'<span class="pb sb">SB</span>':'')+(i==S.bi?'<span class="pb bb">BB</span>':''):'';
+return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)"><div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div></div>${la?'<div class="la '+laC(la)+'">'+esc(la)+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}<div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
 function ctl(){const p=S.players[S.turn];if(S.phase!='play')return '';
 if(!p||p.id!=uid)return `<div class="pot">${p?esc(p.name)+' の番…':''}</div>`;
 const need=S.cur-p.bet,mx=p.bet+p.chips,mn=Math.min(S.cur+S.min,mx);
@@ -225,8 +254,8 @@ if(mx>S.cur){const pot=S.players.reduce((q,p)=>q+p.tot,0);h+=`<div class="ctl"><
 return '<div class="act">'+h+'</div>'}
 
 function render(){if(!net){$('main').innerHTML=menuH();return}const P=S.players;let h;HL=null;if(S.phase=='show'&&S.reveal&&S.win){HL=new Set();const wn=S.win.map(w=>w.n);P.forEach(p=>{if(wn.includes(p.name)&&!p.folded&&p.hole&&p.hole.length&&p.hole[0]>=0)best5(p.hole.concat(S.board)).forEach(c=>HL.add(c))})}{const n=P.length,mi=Math.max(0,P.findIndex(p=>p.id==uid)),mp={2:[0,2],3:[0,1,3]}[n]||[0,1,2,3];P.forEach((_,i)=>POS[i]=mp[(i-mi+n)%n])}
-if(S.phase=='lobby')h=`<h3>ロビー</h3>${P.map(p=>'<div>'+esc(p.name)+(p.id==uid?'(あなた)':'')+'</div>').join('')||'参加者を待っています…'}<p>${isHost?`<button ${P.length<2?'disabled':''} onclick="start()">ゲーム開始 (${P.length}/4人)</button>`:'ホストの開始を待っています'}</p><p><button onclick="copyLink()">🔗 COPY LINK</button></p><p class="bar">ルームコード: <b>${room}</b>${location.protocol=='file:'?'':'<br>招待リンク: '+esc(location.href.split('#')[0]+'#'+room)}</p><p class="bar">開始スタック ${START}チップ(250BB)・最大4人</p>`;
-else h=`<div class="oval"><div class="dealer">${DLR}</div><div class="felt"><div class="pot"><i class="chp g"></i><i class="chp g"></i> ポット ${F(P.reduce((s,p)=>s+p.tot,0))}${S.bb?' <small>'+(P.reduce((s,p)=>s+p.tot,0)/S.bb).toFixed(1)+'BB</small>':''}</div><div class="board">${[0,1,2,3,4].map(k=>{const c=(S.board||[])[k];return c==null?'<span class="card ph"></span>':cardH(c,0,(HL?(HL.has(c)?'hl':'dim'):'')+(omT&&Date.now()<omT.e&&omT.fk==su(c)?' om':''))}).join('')}</div>${omT&&Date.now()<omT.e?'<div class="omen">'+omT.t+'</div>':''}</div>${P.map(seatH).join('')}</div>${myH()}${ctl()}${awayH()}${reH()}${isHost&&S.phase!='lobby'&&S.phase!='over'?(S.endReq?'<p class="bar">このハンドで終了します</p>':'<div class="ctl"><button onclick="if(confirm(\'現在のハンド終了後にゲームを終了して結果を表示しますか?\'))tx({k:\'end\'})">ゲーム終了</button></div>'):''}${S.msg?'<p class="pot">'+esc(S.msg)+'</p>':''}<div class="log">${(S.log||[]).slice().reverse().map(esc).join('<br>')}</div>${S.phase=='over'?resH():''}${S.phase=='over'&&isHost?'<p><button onclick="reset()">ロビーに戻る</button></p>':''}`;
+if(S.phase=='lobby')h=`<h3>ロビー</h3><div class="mem">${MEM.map(m=>{const j=P.some(p=>p.id==m.id);return `<div class="mc ${j?'':'off'}"><img src="/img/${m.img}" alt=""><b>${esc(m.name)}</b><small>${j?(m.id==uid?'あなた':'入室中'):'未入室'}</small></div>`}).join('')}</div><p>${isHost?`<button ${P.length<2?'disabled':''} onclick="start()">ゲーム開始 (${P.length}/4人)</button>`:'ネギおじさんの開始を待っています'}</p><p class="bar">開始スタック ${F(START)}チップ(250BB)・席順は開始時にランダム</p>`;
+else h=`<div class="oval"><div class="felt"><div class="pot"><i class="chp g"></i><i class="chp g"></i> ポット ${F(P.reduce((s,p)=>s+p.tot,0))}${S.bb?' <small>'+(P.reduce((s,p)=>s+p.tot,0)/S.bb).toFixed(1)+'BB</small>':''}</div><div class="board">${[0,1,2,3,4].map(k=>{const c=(S.board||[])[k];return c==null?'<span class="card ph"></span>':cardH(c,0,(HL?(HL.has(c)?'hl':'dim'):'')+(omT&&Date.now()<omT.e&&omT.fk==su(c)?' om':''))}).join('')}</div>${omT&&Date.now()<omT.e?'<div class="omen">'+omT.t+'</div>':''}${P.map(posH).join('')}</div>${P.map(seatH).join('')}</div>${myH()}${ctl()}${awayH()}${reH()}${isHost&&S.phase!='lobby'&&S.phase!='over'?(S.endReq?'<p class="bar">このハンドで終了します</p>':'<div class="ctl"><button onclick="if(confirm(\'現在のハンド終了後にゲームを終了して結果を表示しますか?\'))tx({k:\'end\'})">ゲーム終了</button></div>'):''}${S.msg?'<p class="pot">'+esc(S.msg)+'</p>':''}<div class="log">${(S.log||[]).slice().reverse().map(esc).join('<br>')}</div>${S.phase=='over'?resH():''}${S.phase=='over'&&isHost?'<p><button onclick="reset()">ロビーに戻る</button></p>':''}`;
 $('main').innerHTML=h}
 
 setInterval(()=>{if(!S.startTs||S.phase=='lobby'){$('bar').innerHTML='';return}const el=Date.now()-S.startTs,l=Math.min(4,el/LVMS|0),r=LVMS-el%LVMS,f=n=>n[0]+'/'+n[1]+(n[2]?' (A:'+n[2]+')':''),m=l<4?String(r/60000|0).padStart(2,'0')+':'+String(r/1000%60|0).padStart(2,'0'):'--:--';

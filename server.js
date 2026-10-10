@@ -11,7 +11,7 @@ const cat=fl&&st?8:a==4?7:a==3&&b==2?6:fl?5:st?4:a==3?3:a==2&&b==2?2:a==2?1:0,t=
 function best(c){let m=0;for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++){const s=s5(c.filter((_,k)=>k!=i&&k!=j));if(s>m)m=s}return m}
 
 
-function makeRoom(){let S={phase:'lobby',players:[]},timer,hostId='',joins={};const conns={};const TURN=25000;let tt,endReq=0;const mkRank=()=>[...S.players].sort((a,b)=>b.chips-a.chips||(b.out||0)-(a.out||0)||(a.re||0)-(b.re||0)).map(p=>({n:p.name,r:p.re||0,c:p.chips}));
+function makeRoom(){let S={phase:'lobby',players:[]},timer,hostId='negi',joins={};const conns={};const TURN=25000;let tt,endReq=0;const mkRank=()=>[...S.players].sort((a,b)=>b.chips-a.chips||(b.out||0)-(a.out||0)||(a.re||0)-(b.re||0)).map(p=>({n:p.name,r:p.re||0,c:p.chips}));
 function endGame(){clearTimeout(timer);clearTimeout(tt);endReq=0;S.endReq=0;S.phase='over';S.reveal=0;S.msg='ゲーム終了';S.rank=mkRank();push()}
 const nx=(i,f)=>{const n=S.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(f(S.players[j]))return j}return -1};
 const view=id=>{const o=JSON.parse(JSON.stringify(S));delete o.deck;o.players.forEach(p=>{p.sc=0;if(p.id!=id&&!(o.reveal&&!p.folded))p.hole=(p.hole||[]).map(()=>-1)});return o};
@@ -20,8 +20,8 @@ function handleAway(id,v){if(S.phase=='lobby')return;const p=S.players.find(q=>q
 function handleAct(id,t,a){if(S.phase!='play')return;const i=S.turn;if(S.players[i]&&S.players[i].id==id){S.players[i].to=0;act(i,t,a)}}
 const sched=t=>{clearTimeout(timer);timer=setTimeout(newHand,t||7000)};
 
-function seat(){let ch=0;Object.keys(joins).forEach(id=>{if(S.players.length<4&&!S.players.some(p=>p.id==id)){S.players.push({id,name:joins[id],chips:START});ch=1}});if(ch)push()}
-function start(){S.startTs=Date.now();S.dealer=-1;S.hand=0;newHand()}
+function seat(){let ch=0;Object.keys(joins).forEach(id=>{if(S.players.length<4&&!S.players.some(p=>p.id==id)){S.players.push({id,name:joins[id].name,img:joins[id].img,chips:START});ch=1}});if(ch)push()}
+function start(){for(let i=S.players.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[S.players[i],S.players[j]]=[S.players[j],S.players[i]]}S.startTs=Date.now();S.dealer=-1;S.hand=0;newHand()}
 function reset(){S={phase:'lobby',players:[]};seat();push()}
 
 function newHand(){clearTimeout(timer);if(endReq)return endGame();const P=S.players;P.forEach(p=>{if(p.chips<=0&&!p.out)p.out=Date.now()});
@@ -72,24 +72,28 @@ p.acted=1;p.la=tx;S.log.push(p.name+': '+tx);S.log=S.log.slice(-8);adv();push()}
 
 
 return{empty:()=>!Object.keys(conns).length,
-join(id,n,ws){if(!hostId)hostId=id;conns[id]=ws;joins[id]=n;if(S.phase=='lobby')seat();else handleAway(id,0);push()},
+join(m,ws){const id=m.id;conns[id]=ws;joins[id]={name:m.name,img:m.img};if(S.phase=='lobby')seat();else handleAway(id,0);push()},
 leave(id,ws){if(conns[id]!==ws)return;delete conns[id];
-if(S.phase=='lobby'){S.players=S.players.filter(p=>p.id!=id);delete joins[id];if(hostId==id)hostId=Object.keys(conns)[0]||''}else handleAway(id,1);push()},
+if(S.phase=='lobby'){S.players=S.players.filter(p=>p.id!=id);delete joins[id]}else handleAway(id,1);push()},
 msg(id,m){if(m.k=='act'&&['f','c','r'].includes(m.t)&&Number.isFinite(+m.a))handleAct(id,m.t,+m.a);
 else if(m.k=='away')handleAway(id,m.v);
 else if(id==hostId&&m.k=='start'&&S.phase=='lobby'&&S.players.length>1)start();
 else if(m.k=='re')reentry(id);
 else if(id==hostId&&m.k=='end'&&S.phase!='lobby'&&S.phase!='over'){endReq=1;S.endReq=1;push()}
 else if(id==hostId&&m.k=='reset')reset()}}}
-const rooms={};
-const srv=http.createServer((q,r)=>fs.readFile(path.join(__dirname,'index.html'),(e,d)=>{r.writeHead(e?500:200,{'content-type':'text/html; charset=utf-8'});r.end(e?'error':d)}));
+const MEM=[{id:'yoshiki',name:'よしき',img:'yoshiki.png'},{id:'monmemono',name:'monmemono',img:'monmemono.png'},{id:'negi',name:'ネギおじさん',img:'negi.png'},{id:'hiro',name:'ひろ君',img:'hiro.png'}];
+let R=makeRoom();const online={};
+const types={'.html':'text/html; charset=utf-8','.png':'image/png'};
+const srv=http.createServer((q,r)=>{const u=q.url.split('?')[0];
+if(u=='/api/members'){r.writeHead(200,{'content-type':'application/json'});return r.end(JSON.stringify(MEM.map(m=>({...m,online:!!online[m.id]}))))}
+const f=u=='/'?'index.html':/^\/img\/[\w-]+\.png$/.test(u)?u.slice(1):null;
+if(!f){r.writeHead(404);return r.end('not found')}
+fs.readFile(path.join(__dirname,f),(e,d)=>{if(e){r.writeHead(404);return r.end('not found')}r.writeHead(200,{'content-type':types[path.extname(f)],'cache-control':f=='index.html'?'no-cache':'public, max-age=3600'});r.end(d)})});
 const wss=new WebSocketServer({server:srv});
-wss.on('connection',(ws,req)=>{const u=new URL(req.url,'http://x'),q=k=>u.searchParams.get(k)||'',
-code=q('room').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,8),id=q('id').replace(/[^\w-]/g,'').slice(0,24),name=q('name').slice(0,12)||'player';
-let R=rooms[code];
-if(!R){if(q('create')&&code)R=rooms[code]=makeRoom();else{ws.send(JSON.stringify({k:'err',m:'ルームが見つかりません'}));return ws.close()}}
-if(!id)return ws.close();
-R.join(id,name,ws);
-ws.on('message',d=>{let m;try{m=JSON.parse(d)}catch(e){return}R.msg(id,m)});
-ws.on('close',()=>{R.leave(id,ws);if(R.empty())setTimeout(()=>{if(R.empty()&&rooms[code]===R)delete rooms[code]},600000)})});
+wss.on('connection',(ws,req)=>{const id=new URL(req.url,'http://x').searchParams.get('id'),m=MEM.find(x=>x.id==id);
+if(!m){ws.send(JSON.stringify({k:'err',m:'名前を選び直してください'}));return ws.close()}
+const old=online[id];if(old&&old!==ws){try{old.close()}catch(e){}}online[id]=ws;
+R.join(m,ws);
+ws.on('message',d=>{let x;try{x=JSON.parse(d)}catch(e){return}R.msg(id,x)});
+ws.on('close',()=>{if(online[id]===ws)delete online[id];R.leave(id,ws);if(R.empty())setTimeout(()=>{if(R.empty())R=makeRoom()},600000)})});
 srv.listen(process.env.PORT||3000);
