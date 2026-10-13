@@ -83,10 +83,10 @@ else if(id==hostId&&m.k=='end'&&S.phase!='lobby'&&S.phase!='over'){endReq=1;S.en
 else if(id==hostId&&m.k=='reset')reset()}}}
 const MEM=[{id:'yoshiki',name:'よしき',img:'yoshiki.png'},{id:'monmemono',name:'monmemono',img:'monmemono.png'},{id:'negi',name:'ネギおじさん',img:'negi.png'},{id:'hiro',name:'ひろ君',img:'hiro.png'}];
 let R=makeRoom();const online={};
-const types={'.html':'text/html; charset=utf-8','.png':'image/png'};
+const types={'.html':'text/html; charset=utf-8','.png':'image/png','.webp':'image/webp'};
 const srv=http.createServer((q,r)=>{const u=q.url.split('?')[0];
 if(u=='/api/members'){r.writeHead(200,{'content-type':'application/json'});return r.end(JSON.stringify(MEM.map(m=>({...m,online:!!online[m.id]}))))}
-const f=u=='/'?'index.html':/^\/img\/[\w-]+\.png$/.test(u)?u.slice(1):null;
+const f=u=='/'?'index.html':/^\/img\/[\w-]+\.(png|webp)$/.test(u)?u.slice(1):null;
 if(!f){r.writeHead(404);return r.end('not found')}
 fs.readFile(path.join(__dirname,f),(e,d)=>{if(e){r.writeHead(404);return r.end('not found')}r.writeHead(200,{'content-type':types[path.extname(f)],'cache-control':f=='index.html'?'no-cache':'public, max-age=3600'});r.end(d)})});
 const wss=new WebSocketServer({server:srv});
