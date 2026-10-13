@@ -222,6 +222,28 @@ body{background:radial-gradient(ellipse at 50% 45%,#0000 55%,#000a 100%),url(/im
 .act .pr{order:7;flex:0 0 auto;padding:10px 16px}
 .felt{padding-top:44px}
 #app{padding-bottom:200px}}
+.si{position:relative}
+.oval .seat .hc{position:absolute;margin:0;z-index:2;flex-basis:auto;order:0}
+.oval .seat:not(.me) .hc{top:100%;bottom:auto;left:6px;margin-top:6px}
+.oval .seat.me .hc{top:auto;bottom:100%;left:8px;margin-bottom:6px}
+@media(min-width:800px){
+:root{--tw:min(96vw,calc((100vh - 210px)*2))}
+#app{max-width:none;padding:0 10px 160px;box-sizing:border-box;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+.oval{width:var(--tw);margin:0 auto;aspect-ratio:2/1;height:auto}
+.oval .seat{width:calc(var(--tw)*.28);font-size:calc(var(--tw)*.0125)}
+.sc{height:calc(var(--tw)*.115);margin-right:calc(var(--tw)*-.042)}.seat.me .sc{height:calc(var(--tw)*.127)}
+.felt .board .card{width:calc(var(--tw)*.062);height:calc(var(--tw)*.087);font-size:calc(var(--tw)*.025)}
+.oval .card{width:calc(var(--tw)*.04);height:calc(var(--tw)*.057);font-size:calc(var(--tw)*.017)}
+.seat.me .hc .card{width:calc(var(--tw)*.05);height:calc(var(--tw)*.07);font-size:calc(var(--tw)*.02)}
+.tc{width:calc(var(--tw)*.04);height:calc(var(--tw)*.04);font-size:calc(var(--tw)*.014)}.tc.d{font-size:calc(var(--tw)*.011)}
+.felt .pot,.pot{font-size:calc(var(--tw)*.016)}
+}
+@media(min-width:800px){
+:root{--tw:min(96vw,calc((100vh - 270px)*2))}
+#app{padding:44px 10px 170px}
+.sub{position:fixed;top:14px;right:18px;margin:0;flex-direction:column;align-items:flex-end;gap:8px;z-index:20}
+.sub .bar,.sub .pot{margin:0}
+}
 </style></head><body><div id="app"><div class="bar" id="bar"></div><div id="main">読み込み中…</div></div>
 <script>
 const LV=[[10,20,5],[20,40,10],[30,60,15],[40,80,20],[50,100,25]],LVMS=720000,START=5000;
@@ -330,7 +352,7 @@ function copyLink(){const u=location.href.split('#')[0]+'#'+room;(navigator.clip
 
 function seatH(p,i){const me=p.id==uid,inH=S.phase!='over'&&p.in&&!p.folded,show=me||(S.reveal&&!p.folded),hu=[...p.name].reduce((q,ch)=>q+ch.charCodeAt(0)*31,0)%360,lb=S.phase!='lobby',la=p.folded&&p.in?'フォールド':(S.phase=='play'||S.phase=='show')&&p.la?p.la:'',tn=S.phase=='play'&&S.turn==i,
 pos=lb?(i==S.dealer?'<span class="pb d">D</span>':'')+(i==S.si?'<span class="pb sb">SB</span>':'')+(i==S.bi?'<span class="pb bb">BB</span>':''):'';
-return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)">${p.img?'<img class="sc" src="'+vImg(p)+'" alt="">':''}<div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div><div class="sl">${la?'<div class="la '+laC(la)+'">'+esc(la)+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}</div>${posH(p,i)}</div><div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
+return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)">${p.img?'<img class="sc" src="'+vImg(p)+'" alt="">':''}<div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div><div class="sl">${la?'<div class="la '+laC(la)+'">'+esc(la)+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}</div><div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}</div>${posH(p,i)}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
 function ctl(){const p=S.players[S.turn];if(S.phase!='play')return '';
 if(!p||p.id!=uid)return `<div class="pot">${p?esc(p.name)+' の番…':''}</div>`;
 const need=S.cur-p.bet,mx=p.bet+p.chips,mn=Math.min(S.cur+S.min,mx);
