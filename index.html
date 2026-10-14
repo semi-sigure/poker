@@ -273,7 +273,7 @@ const menuH=()=>`<h3>テキサスホールデム</h3><p class="bar">名前を選
 const tx=o=>ws.send(JSON.stringify(o)),start=()=>tx({k:'start'}),reset=()=>tx({k:'reset'}),send=(t,a)=>tx({k:'act',t,a:a||0});
 function go(id){uid=id;try{sessionStorage.pid=id}catch(e){}
 ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/?id='+id);
-ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.k=='st'){off=m.s.now-Date.now();const a=S;S=m.s;isHost=S.host==uid;net=1;render();fx(a,S)}else if(m.k=='err'){net=0;err(m.m)}};
+ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.k=='st'){off=m.s.now-Date.now();if(REAL){REAL=m.s;return}const a=S,b=m.s;if(needHold(a,b)){REAL=b;S=maskS(a);setTimeout(()=>{if(REAL){S=REAL;REAL=null;render()}},6500)}else S=b;isHost=S.host==uid;net=1;render();fx(a,b)}else if(m.k=='err'){net=0;err(m.m)}};
 ws.onclose=()=>{if(net){net=0;err('接続が切れました。再読み込みすると同じ席に戻れます')}};
 ws.onerror=()=>err('接続できませんでした');
 setInterval(()=>ws.readyState==1&&tx({k:'ping'}),25000)}
@@ -286,7 +286,9 @@ const F=n=>Number(n).toLocaleString();
 const pre=v=>{const n=$('rn'),r=$('r'),x=Math.max(+n.min,Math.min(+n.max,Math.round(v/5)*5));n.value=r.value=x;$('rt').textContent=F(x)};
 let shownH=0;
 function cut(p,stk){const d=document.createElement('div');d.className='cut wc';d.innerHTML=`<div class="band"><span class="who">${esc(p.name)}</span><span class="big">ALL-IN</span><span class="amt">${F(stk==null?p.bet:stk)}</span></div>${p.img?'<img class="chr" src="'+imgV(p.img,stk==null?p.chips:stk)+'" onerror="this.remove()">':''}`;document.body.appendChild(d);document.body.classList.add('shk');setTimeout(()=>document.body.classList.remove('shk'),450);setTimeout(()=>d.remove(),1900)}
-function sd(b,pre){const L=b.players.filter(p=>!p.folded&&p.in),o=document.createElement('div'),win=(b.win||[]).map(w=>w.n),bd=b.board||[];o.className='sd';
+function needHold(a,b){return b.phase=='show'&&b.reveal&&shownH!=b.hand&&a.phase=='play'&&a.hand==b.hand&&b.players.filter(p=>!p.folded&&p.in).length>1&&b.players.some(p=>p.allin&&!p.folded)}
+const maskS=a=>{const m=JSON.parse(JSON.stringify(a));m.turn=-1;m.reveal=0;m.win=null;m.msg='';m.dl=0;return m};
+function sd(b,pre){if(REAL){S=REAL;REAL=null;render()}const L=b.players.filter(p=>!p.folded&&p.in),o=document.createElement('div'),win=(b.win||[]).map(w=>w.n),bd=b.board||[];o.className='sd';
 o.innerHTML=`<div class="sdt">ALL-IN SHOWDOWN</div><div class="sdp">${L.map(p=>`<div class="sdc" data-n="${esc(p.name)}"><b>${esc(p.name)}</b><div>${(p.hole||[]).map((c,k)=>`<span class="flip" style="animation-delay:${.4+k*.25}s">${cardH(c)}</span>`).join('')}</div><small>${F(p.tot)} 投入</small><div class="eq"></div></div>`).join('')}</div><div class="sdb">${[0,1,2,3,4].map(k=>`<span class="slot" id="bs${k}">${k<pre&&bd[k]!=null?cardH(bd[k]):''}</span>`).join('')}</div><div class="sdw"></div><button class="sdx" onclick="this.parentNode.remove()">閉じる</button>`;
 document.body.appendChild(o);let t=1600;let pk=pre;const holes=L.map(p=>p.hole),upd=k=>{const mm=L.find(p=>p.id==uid);if(mm&&k>pk){const c0=mineCat(mm.hole,bd.slice(0,pk)),c1=mineCat(mm.hole,bd.slice(0,k));if(c1>=4&&c1>c0)lt(HN[c1],c1>=7)}pk=k;const e=eqCalc(holes,bd.slice(0,k),600);o.querySelectorAll('.eq').forEach((el,i)=>el.textContent=e[i]+'%')};setTimeout(()=>upd(pre),900);
 bd.forEach((c,k)=>{if(k>=pre){setTimeout(()=>{const e=o.querySelector('#bs'+k);if(e)e.innerHTML='<span class="flip">'+cardH(c)+'</span>';upd(k+1)},t);t+=1100}});
@@ -294,7 +296,7 @@ setTimeout(()=>{potFx(b,1);if(RES&&RES.hand==b.hand)vsX(L.filter(p=>p.name==RES.
 setTimeout(()=>o.remove(),12500)}
 function fx(a,b){let c=0;vsUpd(b);fx2(a,b);if(a.lv!=null&&b.lv>a.lv&&b.hand>a.hand&&b.phase=='play')bup(b);if((b.phase=='play'||b.phase=='show')&&a.phase=='play'&&a.hand==b.hand)b.players.forEach(p=>{const q=a.players.find(x=>x.id==p.id);if(q&&!q.allin&&p.allin&&!p.folded){cut(p,q.chips);c=1}});
 if(b.phase=='show'&&b.reveal&&shownH!=b.hand&&b.players.filter(p=>!p.folded&&p.in).length>1&&b.players.some(p=>p.allin&&!p.folded)){shownH=b.hand;const n=a.hand==b.hand?(a.board||[]).length:0;setTimeout(()=>sd(b,n),Math.max(c?2000:0,vsDelay));vsDelay=0}}
-let off=0,omT=null,RES=null,vsH=0,vsDelay=0,vsEl=null,vsPair=null,vsPH=0,vsOrder=[];const REL=LVMS*3;
+let REAL=null,off=0,omT=null,RES=null,vsH=0,vsDelay=0,vsEl=null,vsPair=null,vsPH=0,vsOrder=[];const REL=LVMS*3;
 function best5(c){let m=-1,b=null;const n=c.length;(function f(s,a){if(a.length==5){const v=s5(a);if(v>m){m=v;b=a.slice()}return}for(let i=s;i<n;i++){a.push(c[i]);f(i+1,a);a.pop()}})(0,[]);return b}
 function eqCalc(holes,board,N){const known=new Set(holes.flat().concat(board)),rest=[];for(let c=0;c<52;c++)if(!known.has(c))rest.push(c);const need=5-board.length,w=holes.map(()=>0);
 if(!need){const sc=holes.map(h=>s5(best5(h.concat(board)))),m=Math.max(...sc),k=sc.filter(x=>x==m).length;return sc.map(x=>x==m?Math.round(100/k):0)}
@@ -351,7 +353,7 @@ function vsUpd(b){if(!vsEl)return;const lv=b.players.filter(p=>p.in&&!p.folded);
 const bs=vsEl.querySelectorAll('.pn b');vsOrder.forEach((n,i)=>{const p=b.players.find(x=>x.name==n);if(bs[i]&&p)bs[i].textContent=F(p.chips)})}
 function vsCheck(a,b){const lv=x=>x.players.filter(p=>p.in&&!p.folded),pt=x=>x.players.reduce((q,p)=>q+p.tot,0);if(!b.bb)return;
 const lg=(b.log||[]).slice(-1)[0]||'',called=lg.includes('コール'),sdAll=b.phase=='show'&&b.reveal&&b.players.some(p=>p.allin&&!p.folded);let fresh=0;
-if((b.phase=='play'||(b.phase=='show'&&b.reveal))&&called&&lv(b).length==2&&pt(b)/b.bb>=25&&vsH!=b.hand){vsH=b.hand;fresh=1;const pl=lv(b).map(x=>x.name),go=()=>vsX(pl.map(n=>b.players.find(y=>y.name==n)),null,pt(b),b.bb);
+if((b.phase=='play'||(b.phase=='show'&&b.reveal))&&called&&lv(b).length==2&&pt(b)/b.bb>=25&&vsH!=b.hand){vsH=b.hand;fresh=1;const pl=lv(b).map(x=>x.name),src=b.phase=='show'?a:b,go=()=>vsX(pl.map(n=>src.players.find(y=>y.name==n)||b.players.find(y=>y.name==n)),null,pt(src),b.bb);
 if(b.phase=='play'){go();vsPair=pl;vsPH=b.hand;setTimeout(()=>vsMake(S),2500)}else{setTimeout(go,sdAll?2000:0);if(sdAll)vsDelay=4600}}
 if(b.phase=='show'&&b.win&&b.win.length==1&&vsH==b.hand){const pr=b.reveal?lv(b):lv(a);if(pr.length==2){const w=b.win[0].n,l=pr.find(p=>p.name!=w);if(l&&pr.some(p=>p.name==w)){RES={hand:b.hand,w,l:l.name,v:b.win[0].v};render();if(!sdAll)setTimeout(()=>vsX(pr.map(x=>b.players.find(y=>y.name==x.name)),RES,pt(b),b.bb),fresh?2800:600)}}}}
 function bup(b){const [s,bb,an]=LV[b.lv],d=document.createElement('div');d.className='cut bl';d.innerHTML=`<div class="band"><span class="who">LEVEL ${b.lv+1}</span><span class="big">BLINDS UP</span><span class="amt">${s} / ${bb}${an?'  ANTE '+an:''}</span></div>`;document.body.appendChild(d);setTimeout(()=>d.remove(),1900)}
