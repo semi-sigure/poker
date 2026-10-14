@@ -252,6 +252,11 @@ body{background:radial-gradient(ellipse at 50% 45%,#0000 55%,#000a 100%),url(/im
 .hn{display:inline-block;vertical-align:bottom;margin-left:8px;padding:2px 10px;border-radius:10px;background:#0b1230ee;border:1px solid #f4c542aa;color:#ffd24d;font-weight:900;white-space:nowrap;font-size:12px}
 @media(min-width:800px){.hn{font-size:calc(var(--tw)*.015);padding:calc(var(--tw)*.003) calc(var(--tw)*.008)}}
 .oval .seat .hc{white-space:nowrap}
+.si{flex:1 1 0;min-width:118px}.tbw{flex:0 0 100%}
+.oval .seat.p2 .hc{top:auto;bottom:100%;left:auto;right:6px;margin:0 0 6px 0}
+.oval .seat.me .si{flex:0 0 auto;min-width:0;width:170px}
+.oval .seat .tbw{position:absolute;left:0;right:0;bottom:-8px;flex:none}
+@media(min-width:800px){.oval .seat.me .si{width:calc(var(--tw)*.2)}}
 </style></head><body><div id="app"><div class="bar" id="bar"></div><div id="main">読み込み中…</div></div>
 <script>
 const LV=[[10,20,5],[20,40,10],[30,60,15],[40,80,20],[50,100,25]],LVMS=720000,START=5000;
@@ -335,6 +340,7 @@ if(T>=3){for(let i=0;i<T*30;i++){const c=document.createElement('i');c.className
 if(T==4){const v=document.createElement('div');v.className='vg';o.appendChild(v);for(let k=0;k<5;k++){const bx=innerWidth*(.15+rnd()*.7),by=innerHeight*(.15+rnd()*.5),h=rnd()*360;for(let i=0;i<28;i++){const a=i/28*6.283,d=80+rnd()*80,p=document.createElement('i');p.className='fw';p.style.left=bx+'px';p.style.top=by+'px';p.style.background='hsl('+h+',100%,65%)';p.style.setProperty('--dx',Math.cos(a)*d+'px');p.style.setProperty('--dy',Math.sin(a)*d+'px');p.style.animationDelay=k*.4+'s';o.appendChild(p)}}}
 if(T>=1){const d=document.createElement('div');d.className='pb2 '+K;d.style.animationDuration=1.8+T*.5+'s';d.innerHTML='<b>'+['','NICE POT','BIG POT!!','HUGE POT!!!','MEGA POT'][T]+'</b><small>+'+F(tot)+' ('+r.toFixed(0)+'BB)</small>';o.appendChild(d)}
 setTimeout(()=>o.remove(),2600+T*600)}
+const laS=t=>t.includes('ALL-IN')?'ALL-IN':t.replace(/\s*\d+$/,'');
 const laC=t=>t.startsWith('フォールド')?'lf':/レイズ|ベット/.test(t)?'lr':t.includes('コール')?'lc':'lk';
 const LOWS=2000,HIGHS=8000,imgV=(f,c)=>'/img/'+f.replace('.png',(c<=LOWS?'_low':c>=HIGHS?'_high':'')+'.png');
 function posH(p,i){if(S.phase=='lobby'||S.phase=='over')return '';const d=(i==S.dealer?'<span class="tc d">BTN</span>':'')+(i==S.si?'<span class="tc sb">SB</span>':'')+(i==S.bi?'<span class="tc bb">BB</span>':'');return d?'<div class="tpb">'+d+'</div>':''}
@@ -363,7 +369,7 @@ function copyLink(){const u=location.href.split('#')[0]+'#'+room;(navigator.clip
 
 function seatH(p,i){const me=p.id==uid,inH=S.phase!='over'&&p.in&&!p.folded,show=me||(S.reveal&&!p.folded),hu=[...p.name].reduce((q,ch)=>q+ch.charCodeAt(0)*31,0)%360,lb=S.phase!='lobby',la=p.folded&&p.in?'フォールド':(S.phase=='play'||S.phase=='show')&&p.la?p.la:'',tn=S.phase=='play'&&S.turn==i,
 pos=lb?(i==S.dealer?'<span class="pb d">D</span>':'')+(i==S.si?'<span class="pb sb">SB</span>':'')+(i==S.bi?'<span class="pb bb">BB</span>':''):'';
-return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)">${p.img?'<img class="sc" src="'+vImg(p)+'" alt="">':''}<div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div><div class="sl">${la?'<div class="la '+laC(la)+'">'+esc(la)+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}</div><div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}${me&&inH&&handName()?'<span class="hn">'+esc(handName())+'</span>':''}</div>${posH(p,i)}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
+return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)">${p.img?'<img class="sc" src="'+vImg(p)+'" alt="">':''}<div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div><div class="sl">${la?'<div class="la '+laC(la)+'">'+esc(laS(la))+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}</div><div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}${me&&inH&&handName()?'<span class="hn">'+esc(handName())+'</span>':''}</div>${posH(p,i)}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
 function ctl(){const p=S.players[S.turn];if(S.phase!='play')return '';
 if(!p||p.id!=uid)return `<div class="pot">${p?esc(p.name)+' の番…':''}</div>`;
 const need=S.cur-p.bet,mx=p.bet+p.chips,mn=Math.min(S.cur+S.min,mx);
