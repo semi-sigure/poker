@@ -244,6 +244,14 @@ body{background:radial-gradient(ellipse at 50% 45%,#0000 55%,#000a 100%),url(/im
 .sub{position:fixed;top:14px;right:18px;margin:0;flex-direction:column;align-items:flex-end;gap:8px;z-index:20}
 .sub .bar,.sub .pot{margin:0}
 }
+.tpb{position:absolute;top:50%;bottom:auto;right:auto;left:100%;margin-left:8px;transform:translateY(-50%)}
+.seat.me .tpb{top:50%;bottom:auto}
+.p3 .tpb{left:auto;right:100%;margin:0 8px 0 0}
+.tc{width:clamp(28px,calc(var(--tw,360px)*.03),44px);height:clamp(28px,calc(var(--tw,360px)*.03),44px);font-size:clamp(10px,calc(var(--tw,360px)*.011),15px)}
+.tc.d{font-size:clamp(8px,calc(var(--tw,360px)*.009),12px)}
+.hn{display:inline-block;vertical-align:bottom;margin-left:8px;padding:2px 10px;border-radius:10px;background:#0b1230ee;border:1px solid #f4c542aa;color:#ffd24d;font-weight:900;white-space:nowrap;font-size:12px}
+@media(min-width:800px){.hn{font-size:calc(var(--tw)*.015);padding:calc(var(--tw)*.003) calc(var(--tw)*.008)}}
+.oval .seat .hc{white-space:nowrap}
 </style></head><body><div id="app"><div class="bar" id="bar"></div><div id="main">読み込み中…</div></div>
 <script>
 const LV=[[10,20,5],[20,40,10],[30,60,15],[40,80,20],[50,100,25]],LVMS=720000,START=5000;
@@ -291,10 +299,11 @@ function best5(c){let m=-1,b=null;const n=c.length;(function f(s,a){if(a.length=
 function eqCalc(holes,board,N){const known=new Set(holes.flat().concat(board)),rest=[];for(let c=0;c<52;c++)if(!known.has(c))rest.push(c);const need=5-board.length,w=holes.map(()=>0);
 if(!need){const sc=holes.map(h=>s5(best5(h.concat(board)))),m=Math.max(...sc),k=sc.filter(x=>x==m).length;return sc.map(x=>x==m?Math.round(100/k):0)}
 for(let n=0;n<N;n++){for(let i=0;i<need;i++){const j=i+Math.random()*(rest.length-i)|0;[rest[i],rest[j]]=[rest[j],rest[i]]}const bd=board.concat(rest.slice(0,need)),sc=holes.map(h=>s5(best5(h.concat(bd)))),m=Math.max(...sc),k=sc.filter(x=>x==m).length;sc.forEach((x,i)=>{if(x==m)w[i]+=1/k})}return w.map(x=>Math.round(x/N*100))}
-function myH(){const m=S.players.find(p=>p.id==uid);if(!m||!m.in||m.folded||!m.hole||!m.hole.length||m.hole[0]<0||(S.phase!='play'&&S.phase!='show'))return '';const h=m.hole,b=S.board||[],R=r=>({11:'J',12:'Q',13:'K',14:'A'}[r]||r);let t;
+function handName(){const m=S.players.find(p=>p.id==uid);if(!m||!m.in||m.folded||!m.hole||!m.hole.length||m.hole[0]<0||(S.phase!='play'&&S.phase!='show'))return '';const h=m.hole,b=S.board||[],R=r=>({11:'J',12:'Q',13:'K',14:'A'}[r]||r);let t;
 if(b.length<3){const [x,y]=h.map(rk).sort((p,q)=>q-p);t=x==y?'ポケットペア('+R(x)+')':R(x)+R(y)+(su(h[0])==su(h[1])?' スーテッド':' オフスート')}
 else{const c=h.concat(b);t=HN[s5(best5(c))/759375|0];if(b.length<5){const sc={};c.forEach(x=>sc[su(x)]=(sc[su(x)]||0)+1);const fs=Object.keys(sc).find(k=>sc[k]==4&&h.some(x=>su(x)==k));if(fs&&t!='フラッシュ'&&t!='ストレートフラッシュ')t+=' + フラッシュドロー'}}
-return `<div class="inf">あなたの役: <b style="font-size:1.3em">${t}</b></div>`}
+return t}
+const myH=()=>'';
 const reH=()=>{const m=S.players.find(p=>p.id==uid);return m&&m.chips<=0&&S.phase!='lobby'&&S.phase!='over'&&(S.phase!='play'||!m.in)?`<div class="ctl"><button class="a" onclick="tx({k:'re'})">リエントリー (${F(START)}チップ)</button></div>`:''};
 const resH=()=>`<div class="res"><h3>🏆 RESULT</h3>${(S.rank||[]).map((x,i)=>`<div class="rk${i?'':' w'}">${['🥇','🥈','🥉'][i]||(i+1)+'位'} ${esc(x.n)}<small> ${F(x.c||0)}チップ${x.r?'・リエントリー'+x.r+'回(収支 '+((x.c||0)-START*(1+x.r)>=0?'+':'')+F((x.c||0)-START*(1+x.r))+')':''}</small></div>`).join('')}<p class="bar">総ハンド数 ${S.hand}${S.mp?' ・ 最大ポット '+F(S.mp.v)+'('+esc(S.mp.n)+')':''}</p></div>`;
 function om(bd){const sc={},cn={};bd.forEach(c=>{sc[su(c)]=(sc[su(c)]||0)+1;cn[rk(c)]=(cn[rk(c)]||0)+1});let fs=0,fk=-1;for(const k in sc)if(sc[k]>fs){fs=sc[k];fk=+k}
@@ -352,7 +361,7 @@ function copyLink(){const u=location.href.split('#')[0]+'#'+room;(navigator.clip
 
 function seatH(p,i){const me=p.id==uid,inH=S.phase!='over'&&p.in&&!p.folded,show=me||(S.reveal&&!p.folded),hu=[...p.name].reduce((q,ch)=>q+ch.charCodeAt(0)*31,0)%360,lb=S.phase!='lobby',la=p.folded&&p.in?'フォールド':(S.phase=='play'||S.phase=='show')&&p.la?p.la:'',tn=S.phase=='play'&&S.turn==i,
 pos=lb?(i==S.dealer?'<span class="pb d">D</span>':'')+(i==S.si?'<span class="pb sb">SB</span>':'')+(i==S.bi?'<span class="pb bb">BB</span>':''):'';
-return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)">${p.img?'<img class="sc" src="'+vImg(p)+'" alt="">':''}<div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div><div class="sl">${la?'<div class="la '+laC(la)+'">'+esc(la)+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}</div><div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}</div>${posH(p,i)}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
+return `<div data-n="${esc(p.name)}" class="seat p${POS[i]} ${me?'me':''} ${tn?'turn':''} ${p.folded&&p.in?'fold':''} ${p.allin&&p.in&&!p.folded?'ai':''} ${me&&hasDraw(p)?'spark':''}" style="--hc:hsl(${hu},85%,62%)">${p.img?'<img class="sc" src="'+vImg(p)+'" alt="">':''}<div class="si"><b>${esc(p.name)}${p.re?' <small>RE×'+p.re+'</small>':''}${p.away?' <span class="away">離席中</span>':''}${p.chips<=0&&!p.in?' <small>脱落</small>':''}</b><div class="stk">${p.chips>0?'<i class="chp"></i>'.repeat(Math.max(1,Math.min(5,Math.ceil(p.chips/START*3)))):''} ${F(p.chips)}<small> ${S.bb?(p.chips/S.bb).toFixed(1):'-'}BB</small></div><div class="sl">${la?'<div class="la '+laC(la)+'">'+esc(la)+'</div>':''}${p.bet?'<div class="bet"><i class="chp g"></i>'+F(p.bet)+'</div>':''}</div><div class="hc">${inH?(p.hole||[]).map(c=>cardH(c,!show,HL&&(S.win||[]).some(w=>w.n==p.name)?(HL.has(c)?'hl':'dim'):'')).join(''):''}${me&&inH&&handName()?'<span class="hn">'+esc(handName())+'</span>':''}</div>${posH(p,i)}</div>${tn?'<div class="tbw"><i class="tb"></i></div>':''}</div>`}
 function ctl(){const p=S.players[S.turn];if(S.phase!='play')return '';
 if(!p||p.id!=uid)return `<div class="pot">${p?esc(p.name)+' の番…':''}</div>`;
 const need=S.cur-p.bet,mx=p.bet+p.chips,mn=Math.min(S.cur+S.min,mx);
