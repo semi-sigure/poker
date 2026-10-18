@@ -88,7 +88,7 @@ const srv=http.createServer((q,r)=>{const u=q.url.split('?')[0];
 if(u=='/api/members'){r.writeHead(200,{'content-type':'application/json'});return r.end(JSON.stringify(MEM.map(m=>({...m,online:!!online[m.id]}))))}
 const f=u=='/'?'index.html':/^\/(img\/[\w-]+\.(png|webp)|audio\/[\w-]+\.mp3)$/.test(u)?u.slice(1):null;
 if(!f){r.writeHead(404);return r.end('not found')}
-fs.readFile(path.join(__dirname,f),(e,d)=>{if(e){r.writeHead(404);return r.end('not found')}r.writeHead(200,{'content-type':types[path.extname(f)],'cache-control':f=='index.html'?'no-cache':'public, max-age=3600'});r.end(d)})});
+fs.readFile(path.join(__dirname,f),(e,d)=>{if(e){r.writeHead(404);return r.end('not found')}const rg=/^bytes=(\d*)-(\d*)$/.exec(q.headers.range||'');if(rg&&f.startsWith('audio/')){const a=rg[1]?+rg[1]:0,b=rg[2]?Math.min(+rg[2],d.length-1):d.length-1;r.writeHead(206,{'content-type':types[path.extname(f)],'content-range':'bytes '+a+'-'+b+'/'+d.length,'accept-ranges':'bytes','content-length':b-a+1});return r.end(d.slice(a,b+1))}r.writeHead(200,{'content-type':types[path.extname(f)],'cache-control':f=='index.html'?'no-cache':'public, max-age=3600'});r.end(d)})});
 const wss=new WebSocketServer({server:srv});
 wss.on('connection',(ws,req)=>{const id=new URL(req.url,'http://x').searchParams.get('id'),m=MEM.find(x=>x.id==id);
 if(!m){ws.send(JSON.stringify({k:'err',m:'名前を選び直してください'}));return ws.close()}
