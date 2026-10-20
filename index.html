@@ -457,13 +457,14 @@ const stepR=d=>{const n=$('rn');if(n)pre((+n.value||0)+d*S.bb)};
 function hnbH(){if(S.phase!='show'||!S.reveal||!S.win||!S.hn)return '';const w=S.win.map(x=>x.n),e=Object.entries(S.hn);if(e.length<2)return '';e.sort((a,b)=>(w.includes(b[0])?1:0)-(w.includes(a[0])?1:0));return '<div class="hnb">'+e.map(([n,h])=>'<span class="'+(w.includes(n)?'w':'')+'">'+(w.includes(n)?'🏆 ':'')+esc(n)+' <b>'+esc(h)+'</b></span>').join('')+'</div>'}
 let BUF={},BKEY=undefined,BM=null,BMUTE=false,BCUR=null,SDON=0,BVOL=.38;try{BMUTE=localStorage.bgm=='0'}catch(e){}
 const BG={normal:'bgm_normal',allin:'bgm_allin',one:'bgm_one',two:'bgm_two'};
+const BLS={allin:2.8561};
 async function bgmLoad(k){if(BUF[k]!==undefined)return BUF[k];BUF[k]=null;try{const c=ac();const r=await fetch('/audio/'+BG[k]+'.mp3');BUF[k]=await c.decodeAudioData(await r.arrayBuffer())}catch(e){BUF[k]=null}return BUF[k]}
 function bgmWant(){if(!net||!S.players||S.phase=='lobby'||S.phase=='over')return null;const P=S.players;if(S.phase=='play'&&P.some(p=>p.in&&!p.folded&&p.allin))return 'allin';const out=P.filter(p=>(S.phase=='play'?p.chips+p.tot:p.chips)<=0).length;return out>=2?'two':out==1?'one':'normal'}
 async function bgmSwitch(k){const c=ac();if(!c)return;BKEY=k;if(!BM){BM=c.createGain();BM.gain.value=BMUTE?0:1;BM.connect(c.destination)}
 const now=c.currentTime,old=BCUR;BCUR=null;
 if(old){old.g.gain.cancelScheduledValues(now);old.g.gain.setValueAtTime(old.g.gain.value,now);old.g.gain.linearRampToValueAtTime(0,now+1.2);setTimeout(()=>{try{old.s.stop()}catch(e){}},1500)}
 if(k===null)return;const buf=await bgmLoad(k);if(!buf||BKEY!==k)return;
-const g=c.createGain(),s=c.createBufferSource();g.gain.value=0;s.buffer=buf;s.loop=true;s.connect(g);g.connect(BM);s.start();g.gain.linearRampToValueAtTime(BVOL,c.currentTime+1.2);BCUR={s,g};
+const g=c.createGain(),s=c.createBufferSource();g.gain.value=0;s.buffer=buf;s.loop=true;if(BLS[k]){s.loopStart=BLS[k];s.loopEnd=buf.duration}s.connect(g);g.connect(BM);s.start();g.gain.linearRampToValueAtTime(BVOL,c.currentTime+1.2);BCUR={s,g};
 if(!BUF._pre){BUF._pre=1;setTimeout(()=>Object.keys(BG).forEach(bgmLoad),600)}}
 function bgmUpd(){try{if(!UN||SDON)return;const w=bgmWant();if(w!==BKEY)bgmSwitch(w)}catch(e){}}
 function toggleBgm(){BMUTE=!BMUTE;if(LA){if(BMUTE)fadeA(LA,0,300,()=>LA.pause());else loginMusic(1)}try{localStorage.bgm=BMUTE?'0':'1'}catch(e){}$('bgm').textContent=BMUTE?'🔇':'🎵';if(BM)BM.gain.value=BMUTE?0:1;UN=1;bgmUpd()}
