@@ -462,15 +462,15 @@ const pb=b.players[b.turn];if(b.phase=='play'&&pb&&pb.id==uid&&!(a.phase=='play'
 setInterval(()=>{try{if(S.phase!='play'||!S.players||!S.players[S.turn]||S.players[S.turn].id!=uid)return;const s=Math.ceil((S.dl-(Date.now()+off))/1000);if(s<=5&&s>0&&s!=lastTk){lastTk=s;SFX.tick()}}catch(e){}},250);
 const stepR=d=>{const n=$('rn');if(n)pre((+n.value||0)+d*S.bb)};
 function hnbH(){if(S.phase!='show'||!S.reveal||!S.win||!S.hn)return '';const w=S.win.map(x=>x.n),e=Object.entries(S.hn);if(e.length<2)return '';e.sort((a,b)=>(w.includes(b[0])?1:0)-(w.includes(a[0])?1:0));return '<div class="hnb">'+e.map(([n,h])=>'<span class="'+(w.includes(n)?'w':'')+'">'+(w.includes(n)?'🏆 ':'')+esc(n)+' <b>'+esc(h)+'</b></span>').join('')+'</div>'}
-let BUF={},BKEY=undefined,BM=null,BMUTE=false,BCUR=null,SDON=0,BVOL=.38;try{BMUTE=localStorage.bgm=='0'}catch(e){}
+let BRT={},BUF={},BKEY=undefined,BM=null,BMUTE=false,BCUR=null,SDON=0,BVOL=.8;try{BMUTE=localStorage.bgm=='0'}catch(e){}
 const BG={normal:'bgm_normal',allin:'bgm_allin',one:'bgm_one',two:'bgm_two'};
-const BLS={allin:2.8561};
-async function bgmLoad(k){if(BUF[k]!==undefined)return BUF[k];BUF[k]=null;try{const c=ac();const r=await fetch('/audio/'+BG[k]+'.mp3');BUF[k]=await c.decodeAudioData(await r.arrayBuffer())}catch(e){BUF[k]=null}return BUF[k]}
-function bgmWant(){if(!net||!S.players||S.phase=='lobby'||S.phase=='over')return null;const P=S.players;if(S.phase=='play'&&P.some(p=>p.in&&!p.folded&&p.allin))return 'allin';const out=P.filter(p=>(S.phase=='play'?p.chips+p.tot:p.chips)<=0).length;return out>=2?'two':out==1?'one':'normal'}
+const BLS={};
+async function bgmLoad(k){if(BUF[k])return BUF[k];if(BUF[k]===0)return null;BUF[k]=0;try{const c=ac();const r=await fetch('/audio/'+BG[k]+'.mp3');if(!r.ok)throw new Error(r.status);BUF[k]=await c.decodeAudioData(await r.arrayBuffer())}catch(e){BUF[k]=undefined;try{$('bgm').title='BGMを読み込めません: '+BG[k]+'.mp3'}catch(e2){}return null}return BUF[k]}
+function bgmWant(){if(!net||!S.players||S.phase=='lobby'||S.phase=='over')return null;const P=S.players;if(S.phase=='play'&&P.some(p=>p.in&&!p.folded&&p.allin))return 'allin';const alive=P.filter(p=>(S.phase=='play'?p.chips+p.tot:p.chips)>0).length;return alive>=4?'normal':alive==3?'one':'two'}
 async function bgmSwitch(k){const c=ac();if(!c)return;BKEY=k;if(!BM){BM=c.createGain();BM.gain.value=BMUTE?0:1;BM.connect(c.destination)}
 const now=c.currentTime,old=BCUR;BCUR=null;
 if(old){old.g.gain.cancelScheduledValues(now);old.g.gain.setValueAtTime(old.g.gain.value,now);old.g.gain.linearRampToValueAtTime(0,now+(k==='allin'?.25:1.2));setTimeout(()=>{try{old.s.stop()}catch(e){}},k==='allin'?400:1500)}
-if(k===null)return;const buf=await bgmLoad(k);if(!buf||BKEY!==k)return;
+if(k===null)return;const buf=await bgmLoad(k);if(!buf){if(BKEY===k&&(BRT[k]=(BRT[k]||0)+1)<=6)setTimeout(()=>{if(BKEY===k&&!BCUR)bgmSwitch(k)},2500);return}if(BKEY!==k)return;
 const g=c.createGain(),s=c.createBufferSource();g.gain.value=0;s.buffer=buf;s.loop=true;if(BLS[k]){s.loopStart=BLS[k];s.loopEnd=buf.duration}s.connect(g);g.connect(BM);s.start();g.gain.linearRampToValueAtTime(BVOL,c.currentTime+(k==='allin'?.12:1.2));BCUR={s,g};
 if(!BUF._pre){BUF._pre=1;setTimeout(()=>Object.keys(BG).forEach(bgmLoad),600)}}
 function bgmUpd(){try{if(!UN||SDON)return;const w=bgmWant();if(w!==BKEY)bgmSwitch(w)}catch(e){}}
