@@ -462,7 +462,7 @@ const pb=b.players[b.turn];if(b.phase=='play'&&pb&&pb.id==uid&&!(a.phase=='play'
 setInterval(()=>{try{if(S.phase!='play'||!S.players||!S.players[S.turn]||S.players[S.turn].id!=uid)return;const s=Math.ceil((S.dl-(Date.now()+off))/1000);if(s<=5&&s>0&&s!=lastTk){lastTk=s;SFX.tick()}}catch(e){}},250);
 const stepR=d=>{const n=$('rn');if(n)pre((+n.value||0)+d*S.bb)};
 function hnbH(){if(S.phase!='show'||!S.reveal||!S.win||!S.hn)return '';const w=S.win.map(x=>x.n),e=Object.entries(S.hn);if(e.length<2)return '';e.sort((a,b)=>(w.includes(b[0])?1:0)-(w.includes(a[0])?1:0));return '<div class="hnb">'+e.map(([n,h])=>'<span class="'+(w.includes(n)?'w':'')+'">'+(w.includes(n)?'🏆 ':'')+esc(n)+' <b>'+esc(h)+'</b></span>').join('')+'</div>'}
-let BRT={},BUF={},BKEY=undefined,BM=null,BMUTE=false,BCUR=null,SDON=0,BVOL=.8;try{BMUTE=localStorage.bgm=='0'}catch(e){}
+let BRT={},BUF={},BKEY=undefined,BM=null,BMUTE=false,BCUR=null,SDON=0,BVOL=.7;try{BMUTE=localStorage.bgm=='0'}catch(e){}
 const BG={normal:'bgm_normal',allin:'bgm_allin',one:'bgm_one',two:'bgm_two'};
 const BLS={};
 async function bgmLoad(k){if(BUF[k])return BUF[k];if(BUF[k]===0)return null;BUF[k]=0;try{const c=ac();const r=await fetch('/audio/'+BG[k]+'.mp3');if(!r.ok)throw new Error(r.status);BUF[k]=await c.decodeAudioData(await r.arrayBuffer())}catch(e){BUF[k]=undefined;try{$('bgm').title='BGMを読み込めません: '+BG[k]+'.mp3'}catch(e2){}return null}return BUF[k]}
