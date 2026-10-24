@@ -11,8 +11,8 @@ const cat=fl&&st?8:a==4?7:a==3&&b==2?6:fl?5:st?4:a==3?3:a==2&&b==2?2:a==2?1:0,t=
 function best(c){let m=0;for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++){const s=s5(c.filter((_,k)=>k!=i&&k!=j));if(s>m)m=s}return m}
 
 
-function makeRoom(){let S={phase:'lobby',players:[]},timer,hostId='negi',joins={};const conns={};const TURN=25000;let tt,endReq=0;const mkRank=()=>[...S.players].sort((a,b)=>b.chips-a.chips||(b.out||0)-(a.out||0)||(a.re||0)-(b.re||0)).map(p=>({n:p.name,r:p.re||0,c:p.chips}));
-function endGame(){clearTimeout(timer);clearTimeout(tt);endReq=0;S.endReq=0;S.phase='over';S.reveal=0;S.msg='ゲーム終了';S.rank=mkRank();push()}
+function makeRoom(){let S={phase:'lobby',players:[]},timer,hostId='negi',joins={};const conns={};const TURN=25000,TLIM=LVMS*5;let tt,endReq=0;const mkRank=()=>[...S.players].sort((a,b)=>b.chips-a.chips||(b.out||0)-(a.out||0)||(a.re||0)-(b.re||0)).map(p=>({n:p.name,r:p.re||0,c:p.chips}));
+function endGame(w){clearTimeout(timer);clearTimeout(tt);endReq=0;S.endReq=0;S.phase='over';S.reveal=0;S.msg=w||'ゲーム終了';S.rank=mkRank();push()}
 const nx=(i,f)=>{const n=S.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(f(S.players[j]))return j}return -1};
 const view=id=>{const o=JSON.parse(JSON.stringify(S));delete o.deck;o.players.forEach(p=>{p.sc=0;if(p.id!=id&&!(o.reveal&&!p.folded))p.hole=(p.hole||[]).map(()=>-1)});return o};
 const push=()=>Object.entries(conns).forEach(([id,w])=>{if(w.readyState==1){const o=view(id);o.host=hostId;o.now=Date.now();w.send(JSON.stringify({k:'st',s:o}))}});
@@ -24,7 +24,7 @@ function seat(){let ch=0;Object.keys(joins).forEach(id=>{if(S.players.length<4&&
 function start(){for(let i=S.players.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[S.players[i],S.players[j]]=[S.players[j],S.players[i]]}S.startTs=Date.now();S.dealer=-1;S.hand=0;newHand()}
 function reset(){S={phase:'lobby',players:[]};seat();push()}
 
-function newHand(){clearTimeout(timer);if(endReq)return endGame();const P=S.players;P.forEach(p=>{if(p.chips<=0&&!p.out)p.out=Date.now()});
+function newHand(){clearTimeout(timer);if(endReq)return endGame();if(Date.now()-S.startTs>=TLIM)return endGame('60分が経過したので、ゲーム終了です');const P=S.players;P.forEach(p=>{if(p.chips<=0&&!p.out)p.out=Date.now()});
 P.forEach(p=>{p.in=p.chips>0&&!p.away?1:0;p.bet=p.tot=p.allin=p.acted=0;p.la='';p.folded=!p.in;p.hole=[];p.sc=0});
 const al=P.filter(p=>p.in);
 const wc=P.filter(p=>p.chips>0).length;
@@ -42,7 +42,7 @@ post(P[si],sb);post(P[bi],bb);S.cur=bb;S.min=bb;S.turn=bi;
 S.log=['— ハンド#'+S.hand+'  '+sb+'/'+bb+(an?' アンティ'+an:'')];adv();push()}
 
 const aw=()=>{clearTimeout(tt);const p=S.players[S.turn];if(!p)return;if(p.away)act(S.turn,S.cur>p.bet?'f':'c');else{S.dl=Date.now()+TURN;tt=setTimeout(()=>{if(S.phase=='play'&&S.players[S.turn]===p){p.to=(p.to||0)+1;if(p.to>=2)p.away=1;act(S.turn,S.cur>p.bet?'f':'c')}},TURN)}};
-function reentry(id){const p=S.players.find(q=>q.id==id);if(!p||S.phase=='lobby'||S.phase=='over'||p.chips>0||(S.phase=='play'&&p.in))return;p.chips=START;p.out=0;p.away=0;p.re=(p.re||0)+1;S.log=(S.log||[]).concat(p.name+' がリエントリー').slice(-8);push()}
+function reentry(id){const p=S.players.find(q=>q.id==id);if(!p||S.phase=='lobby'||S.phase=='over'||p.chips>0||(S.phase=='play'&&p.in)||Date.now()-S.startTs>=TLIM)return;p.chips=START;p.out=0;p.away=0;p.re=(p.re||0)+1;S.log=(S.log||[]).concat(p.name+' がリエントリー').slice(-8);push()}
 function adv(){const P=S.players,live=P.filter(p=>!p.folded);
 if(live.length==1){const w=live[0],t=P.reduce((s,p)=>s+p.tot,0);w.chips+=t;S.msg=w.name+' が '+t+' を獲得(他全員フォールド)';S.win=[{n:w.name,v:t}];S.hn={};if(!S.mp||t>S.mp.v)S.mp={v:t,n:w.name,h:S.hand};S.phase='show';S.reveal=0;sched();return}
 const ca=live.filter(p=>!p.allin);
