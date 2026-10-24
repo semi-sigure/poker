@@ -18,14 +18,14 @@ const view=id=>{const o=JSON.parse(JSON.stringify(S));delete o.deck;o.players.fo
 const push=()=>Object.entries(conns).forEach(([id,w])=>{if(w.readyState==1){const o=view(id);o.host=hostId;o.now=Date.now();w.send(JSON.stringify({k:'st',s:o}))}});
 function handleAway(id,v){if(S.phase=='lobby')return;const p=S.players.find(q=>q.id==id);if(!p)return;p.away=v?1:0;if(v&&S.phase=='play'&&S.players[S.turn]===p)act(S.turn,S.cur>p.bet?'f':'c');else push()}
 function handleAct(id,t,a){if(S.phase!='play')return;const i=S.turn;if(S.players[i]&&S.players[i].id==id){S.players[i].to=0;act(i,t,a)}}
-const sched=t=>{clearTimeout(timer);timer=setTimeout(newHand,t||7000)};
+const sched=t=>{clearTimeout(timer);timer=setTimeout(newHand,t||4500)};
 
 function seat(){let ch=0;Object.keys(joins).forEach(id=>{if(S.players.length<4&&!S.players.some(p=>p.id==id)){S.players.push({id,name:joins[id].name,img:joins[id].img,chips:START});ch=1}});if(ch)push()}
 function start(){for(let i=S.players.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[S.players[i],S.players[j]]=[S.players[j],S.players[i]]}S.startTs=Date.now();S.dealer=-1;S.hand=0;newHand()}
 function reset(){S={phase:'lobby',players:[]};seat();push()}
 
 function newHand(){clearTimeout(timer);if(endReq)return endGame();if(Date.now()-S.startTs>=TLIM)return endGame('60分が経過したので、ゲーム終了です');const P=S.players;P.forEach(p=>{if(p.chips<=0&&!p.out)p.out=Date.now()});
-P.forEach(p=>{p.in=p.chips>0&&!p.away?1:0;p.bet=p.tot=p.allin=p.acted=0;p.la='';p.folded=!p.in;p.hole=[];p.sc=0});
+P.forEach(p=>{p.in=p.chips>0?1:0;p.bet=p.tot=p.allin=p.acted=0;p.la='';p.folded=!p.in;p.hole=[];p.sc=0});
 const al=P.filter(p=>p.in);
 const wc=P.filter(p=>p.chips>0).length;
 if(al.length<2&&(wc>=2||P.length>1)){S.phase='show';S.msg=wc>=2?'離席中のプレイヤーがいます。復帰待ち…':'リエントリー待ち…';sched();return push()}
@@ -60,7 +60,7 @@ let el=P.filter(p=>!p.folded&&p.tot>=l);if(!el.length)el=P.filter(p=>p.tot>=l);
 const m=Math.max(...el.map(p=>p.sc)),w=el.filter(p=>p.sc==m),sh=Math.floor(amt/w.length);
 w.forEach(p=>{p.chips+=sh;res[p.name]=(res[p.name]||0)+sh});w[0].chips+=amt-sh*w.length;prev=l});
 S.reveal=1;S.phase='show';
-S.msg=Object.entries(res).map(([n,v])=>n+' +'+v).join(' / ')+'  ('+P.filter(p=>!p.folded).map(p=>p.name+':'+HN[p.sc/759375|0]).join(', ')+')';S.win=Object.entries(res).map(([n,v])=>({n,v}));S.hn={};P.filter(p=>!p.folded).forEach(p=>S.hn[p.name]=HN[p.sc/759375|0]);{const tp=P.reduce((s,p)=>s+p.tot,0);if(!S.mp||tp>S.mp.v)S.mp={v:tp,n:S.win.map(w=>w.n).join('・'),h:S.hand}}sched(P.filter(p=>!p.folded).length>1&&P.some(p=>!p.folded&&p.allin)?13000:0)}
+S.msg=Object.entries(res).map(([n,v])=>n+' +'+v).join(' / ')+'  ('+P.filter(p=>!p.folded).map(p=>p.name+':'+HN[p.sc/759375|0]).join(', ')+')';S.win=Object.entries(res).map(([n,v])=>({n,v}));S.hn={};P.filter(p=>!p.folded).forEach(p=>S.hn[p.name]=HN[p.sc/759375|0]);{const tp=P.reduce((s,p)=>s+p.tot,0);if(!S.mp||tp>S.mp.v)S.mp={v:tp,n:S.win.map(w=>w.n).join('・'),h:S.hand}}sched(P.filter(p=>!p.folded).length>1&&P.some(p=>!p.folded&&p.allin)?10000:0)}
 
 function act(i,t,a){const p=S.players[i],need=S.cur-p.bet;let tx='フォールド';
 if(t=='f')p.folded=1;
