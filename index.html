@@ -314,7 +314,7 @@ body.inlg #snd,body.inlg #bgm{left:auto;bottom:auto;top:14px}body.inlg #snd{righ
 .card.hm{outline:3px solid #19e3ff;box-shadow:0 0 14px 4px #19e3ff,0 0 3px #fff;transform:translateY(-10px)}
 .card.hl{outline:2px solid #f4c542;box-shadow:0 0 8px #f4c542;transform:translateY(-4px)}
 .hnk{display:inline-flex;align-items:center;gap:.4em;font-size:.7em;font-weight:400;color:#cfd6ff;border:none!important;background:none!important}.hnk i{display:inline-block;width:.9em;height:.9em;border-radius:.2em}.hnk .k1{background:#19e3ff;box-shadow:0 0 6px #19e3ff}.hnk .k2{background:#f4c542;margin-left:.8em}
-</style></head><body><div id="app"><div class="bar" id="bar"></div><div id="main">読み込み中…</div></div>
+.sus{animation:susp .45s ease-in-out infinite alternate}@keyframes susp{from{filter:brightness(1);box-shadow:0 0 0 rgba(255,60,60,0)}to{filter:brightness(1.8);box-shadow:0 0 28px 8px rgba(255,70,70,.9)}}</style></head><body><div id="app"><div class="bar" id="bar"></div><div id="main">読み込み中…</div></div>
 <button id="snd" onclick="toggleSnd()">🔊</button><button id="bgm" onclick="toggleBgm()">🎵</button>
 <script>
 const LV=[[10,20,5],[20,40,10],[30,60,15],[40,80,20],[50,100,25]],LVMS=720000,START=5000;
@@ -364,9 +364,9 @@ const maskS=a=>{const m=JSON.parse(JSON.stringify(a));m.turn=-1;m.reveal=0;m.win
 function sd(b,pre){const L=b.players.filter(p=>!p.folded&&p.in),o=document.createElement('div'),win=(b.win||[]).map(w=>w.n),bd=b.board||[];o.className='sd';
 o.innerHTML=`<div class="sdt">ALL-IN SHOWDOWN</div><div class="sdp">${L.map(p=>`<div class="sdc" data-n="${esc(p.name)}"><b>${esc(p.name)}</b><div>${(p.hole||[]).map((c,k)=>`<span class="flip" style="animation-delay:${.4+k*.25}s">${cardH(c)}</span>`).join('')}</div><small>${F(p.tot)} 投入</small><div class="eq"></div></div>`).join('')}</div><div class="sdb">${[0,1,2,3,4].map(k=>`<span class="slot" id="bs${k}">${k<pre&&bd[k]!=null?cardH(bd[k]):''}</span>`).join('')}</div><div class="sdw"></div><button class="sdx" onclick="this.parentNode.remove()">閉じる</button>`;
 document.body.appendChild(o);SDON=1;SFX.card();setTimeout(SFX.card,650);setTimeout(()=>{if(REAL){S=REAL;REAL=null;render()}},600);let t=1600;let pk=pre;const holes=L.map(p=>p.hole),upd=k=>{const mm=L.find(p=>p.id==uid);if(mm&&k>pk){const c0=mineCat(mm.hole,bd.slice(0,pk)),c1=mineCat(mm.hole,bd.slice(0,k));if(c1>=4&&c1>c0)lt(HN[c1],c1>=7)}pk=k;const e=eqCalc(holes,bd.slice(0,k),600);o.querySelectorAll('.eq').forEach((el,i)=>el.textContent=e[i]+'%')};setTimeout(()=>upd(pre),900);
-bd.forEach((c,k)=>{if(k>=pre){setTimeout(()=>{const e=o.querySelector('#bs'+k);if(e)e.innerHTML='<span class="flip">'+cardH(c)+'</span>';SFX.card();upd(k+1)},t);t+=1100}});
+bd.forEach((c,k)=>{if(k>=pre){if(k==4&&bd.length==5){const q=eqCalc(holes,bd.slice(0,4),400);if(Math.max.apply(null,q)<95){const t0=t;setTimeout(()=>{const e=o.querySelector('#bs4');if(e)e.classList.add('sus');try{SFX.card()}catch(x){}},t0);t+=1900}}setTimeout(()=>{const e=o.querySelector('#bs'+k);if(e)e.innerHTML='<span class="flip">'+cardH(c)+'</span>';SFX.card();upd(k+1)},t);t+=1100}});
 setTimeout(()=>{SDON=0;bgmUpd();potFx(b,1);if(RES&&RES.hand==b.hand)vsX(L.filter(p=>p.name==RES.w||p.name==RES.l),RES,b.players.reduce((q,p)=>q+p.tot,0),b.bb);o.querySelectorAll('.sdc').forEach(e=>{if(win.includes(e.dataset.n))e.classList.add('winner')});const w=o.querySelector('.sdw');if(w)w.innerHTML=(b.win||[]).map(x=>`<div class="wn">🏆 ${esc(x.n)} <small>${esc((b.hn||{})[x.n]||'')}</small> +${F(x.v)}</div>`).join('')},t+500);
-setTimeout(()=>{SDON=0;o.remove();bgmUpd()},12500)}
+setTimeout(()=>{SDON=0;o.remove();bgmUpd()},Math.max(12500,t+4500))}
 function fx(a,b){let c=0;sfxFx(a,b);vsUpd(b);fx2(a,b);if(a.lv!=null&&b.lv>a.lv&&b.hand>a.hand&&b.phase=='play')bup(b);if((b.phase=='play'||b.phase=='show')&&a.phase=='play'&&a.hand==b.hand)b.players.forEach(p=>{const q=a.players.find(x=>x.id==p.id);if(q&&!q.allin&&p.allin&&!p.folded){cut(p,q.chips,q.chips+q.tot);c=1}});
 if(b.phase=='show'&&b.reveal&&shownH!=b.hand&&b.players.filter(p=>!p.folded&&p.in).length>1&&b.players.some(p=>p.allin&&!p.folded)){shownH=b.hand;const n=a.hand==b.hand?(a.board||[]).length:0;setTimeout(()=>sd(b,n),Math.max(c?2000:0,vsDelay));vsDelay=0}}
 let REAL=null,off=0,omT=null,RES=null,vsH=0,vsDelay=0,vsEl=null,vsPair=null,vsPH=0,vsOrder=[];const REL=LVMS*3;
@@ -379,7 +379,7 @@ if(b.length<3){const [x,y]=h.map(rk).sort((p,q)=>q-p);t=x==y?'ポケットペア
 else{const c=h.concat(b);t=HN[s5(best5(c))/759375|0];if(b.length<5){const sc={};c.forEach(x=>sc[su(x)]=(sc[su(x)]||0)+1);const fs=Object.keys(sc).find(k=>sc[k]==4&&h.some(x=>su(x)==k));if(fs&&t!='フラッシュ'&&t!='ストレートフラッシュ')t+=' + フラッシュドロー'}}
 return t}
 const myH=()=>'';
-const reH=()=>{const m=S.players.find(p=>p.id==uid);return m&&m.chips<=0&&S.phase!='lobby'&&S.phase!='over'&&(S.phase!='play'||!m.in)?`<div class="ctl"><button class="a" onclick="tx({k:'re'})">リエントリー (${F(START)}チップ)</button></div>`:''};
+const reH=()=>{const m=S.players.find(p=>p.id==uid);return m&&m.chips<=0&&S.phase!='lobby'&&S.phase!='over'&&(S.phase!='play'||!m.in)?`<div class="ctl"><div class="bar" style="font-weight:700;font-size:15px">👀 脱落しました — 観戦中</div></div>`:''};
 const resH=()=>`<div class="res"><h3>🏆 RESULT</h3>${(S.rank||[]).map((x,i)=>`<div class="rk${i?'':' w'}">${['🥇','🥈','🥉'][i]||(i+1)+'位'} ${esc(x.n)}<small> ${F(x.c||0)}チップ${x.r?'・リエントリー'+x.r+'回(収支 '+((x.c||0)-START*(1+x.r)>=0?'+':'')+F((x.c||0)-START*(1+x.r))+')':''}</small></div>`).join('')}<p class="bar">総ハンド数 ${S.hand}${S.mp?' ・ 最大ポット '+F(S.mp.v)+'('+esc(S.mp.n)+')':''}</p></div>`;
 function om(bd){const sc={},cn={};bd.forEach(c=>{sc[su(c)]=(sc[su(c)]||0)+1;cn[rk(c)]=(cn[rk(c)]||0)+1});let fs=0,fk=-1;for(const k in sc)if(sc[k]>fs){fs=sc[k];fk=+k}
 const rs=new Set(bd.map(rk));if(rs.has(14))rs.add(1);let st=0;for(let lo=1;lo<=10;lo++){let n=0;for(let r=lo;r<lo+5;r++)if(rs.has(r))n++;if(n>st)st=n}

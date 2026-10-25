@@ -28,7 +28,7 @@ function newHand(){clearTimeout(timer);if(endReq)return endGame();if(Date.now()-
 P.forEach(p=>{p.in=p.chips>0?1:0;p.bet=p.tot=p.allin=p.acted=0;p.la='';p.folded=!p.in;p.hole=[];p.sc=0});
 const al=P.filter(p=>p.in);
 const wc=P.filter(p=>p.chips>0).length;
-if(al.length<2&&(wc>=2||P.length>1)){S.phase='show';S.msg=wc>=2?'離席中のプレイヤーがいます。復帰待ち…':'リエントリー待ち…';sched();return push()}
+if(al.length<2&&wc>=2){S.phase='show';S.msg=wc>=2?'離席中のプレイヤーがいます。復帰待ち…':'リエントリー待ち…';sched();return push()}
 if(al.length<2){S.phase='over';S.reveal=0;S.msg=al[0]?al[0].name+' の優勝！':'終了';S.rank=mkRank();return push()}
 S.lv=Math.min(4,(Date.now()-S.startTs)/LVMS|0);const [sb,bb,an]=LV[S.lv];
 S.bb=bb;S.phase='play';S.hand++;S.board=[];S.street=0;S.reveal=0;S.msg='';
@@ -42,7 +42,7 @@ post(P[si],sb);post(P[bi],bb);S.cur=bb;S.min=bb;S.turn=bi;
 S.log=['— ハンド#'+S.hand+'  '+sb+'/'+bb+(an?' アンティ'+an:'')];adv();push()}
 
 const aw=()=>{clearTimeout(tt);const p=S.players[S.turn];if(!p)return;if(p.away)act(S.turn,S.cur>p.bet?'f':'c');else{S.dl=Date.now()+TURN;tt=setTimeout(()=>{if(S.phase=='play'&&S.players[S.turn]===p){p.to=(p.to||0)+1;if(p.to>=2)p.away=1;act(S.turn,S.cur>p.bet?'f':'c')}},TURN)}};
-function reentry(id){const p=S.players.find(q=>q.id==id);if(!p||S.phase=='lobby'||S.phase=='over'||p.chips>0||(S.phase=='play'&&p.in)||Date.now()-S.startTs>=TLIM)return;p.chips=START;p.out=0;p.away=0;p.re=(p.re||0)+1;S.log=(S.log||[]).concat(p.name+' がリエントリー').slice(-8);push()}
+function reentry(id){return;const p=S.players.find(q=>q.id==id);if(!p||S.phase=='lobby'||S.phase=='over'||p.chips>0||(S.phase=='play'&&p.in)||Date.now()-S.startTs>=TLIM)return;p.chips=START;p.out=0;p.away=0;p.re=(p.re||0)+1;S.log=(S.log||[]).concat(p.name+' がリエントリー').slice(-8);push()}
 function adv(){const P=S.players,live=P.filter(p=>!p.folded);
 if(live.length==1){const w=live[0],t=P.reduce((s,p)=>s+p.tot,0);w.chips+=t;S.msg=w.name+' が '+t+' を獲得(他全員フォールド)';S.win=[{n:w.name,v:t}];S.hn={};if(!S.mp||t>S.mp.v)S.mp={v:t,n:w.name,h:S.hand};S.phase='show';S.reveal=0;sched();return}
 const ca=live.filter(p=>!p.allin);
@@ -60,7 +60,7 @@ let el=P.filter(p=>!p.folded&&p.tot>=l);if(!el.length)el=P.filter(p=>p.tot>=l);
 const m=Math.max(...el.map(p=>p.sc)),w=el.filter(p=>p.sc==m),sh=Math.floor(amt/w.length);
 w.forEach(p=>{p.chips+=sh;res[p.name]=(res[p.name]||0)+sh});w[0].chips+=amt-sh*w.length;prev=l});
 S.reveal=1;S.phase='show';
-S.msg=Object.entries(res).map(([n,v])=>n+' +'+v).join(' / ')+'  ('+P.filter(p=>!p.folded).map(p=>p.name+':'+HN[p.sc/759375|0]).join(', ')+')';S.win=Object.entries(res).map(([n,v])=>({n,v}));S.hn={};P.filter(p=>!p.folded).forEach(p=>S.hn[p.name]=HN[p.sc/759375|0]);{const tp=P.reduce((s,p)=>s+p.tot,0);if(!S.mp||tp>S.mp.v)S.mp={v:tp,n:S.win.map(w=>w.n).join('・'),h:S.hand}}sched(P.filter(p=>!p.folded).length>1&&P.some(p=>!p.folded&&p.allin)?10000:0)}
+S.msg=Object.entries(res).map(([n,v])=>n+' +'+v).join(' / ')+'  ('+P.filter(p=>!p.folded).map(p=>p.name+':'+HN[p.sc/759375|0]).join(', ')+')';S.win=Object.entries(res).map(([n,v])=>({n,v}));S.hn={};P.filter(p=>!p.folded).forEach(p=>S.hn[p.name]=HN[p.sc/759375|0]);{const tp=P.reduce((s,p)=>s+p.tot,0);if(!S.mp||tp>S.mp.v)S.mp={v:tp,n:S.win.map(w=>w.n).join('・'),h:S.hand}}sched(P.filter(p=>!p.folded).length>1&&P.some(p=>!p.folded&&p.allin)?12000:0)}
 
 function act(i,t,a){const p=S.players[i],need=S.cur-p.bet;let tx='フォールド';
 if(t=='f')p.folded=1;
